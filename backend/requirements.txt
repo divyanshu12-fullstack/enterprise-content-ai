@@ -1,0 +1,10 @@
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+crewai>=0.120.0
+langchain-google-genai>=2.1.0
+duckduckgo-search>=6.2.0
+pydantic>=2.8.0
+python-dotenv>=1.0.1
+tenacity>=8.2.3
+orjson>=3.10.0
+pytest>=8.2.0

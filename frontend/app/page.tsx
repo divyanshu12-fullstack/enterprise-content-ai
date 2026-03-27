@@ -96,7 +96,7 @@ function HeroSection() {
       {/* Geometric shader background */}
       <div className="pointer-events-none absolute inset-0 opacity-70">
         <HeroGeometric
-          className="!min-h-full h-full w-full !bg-transparent"
+          className="min-h-full! h-full w-full bg-transparent!"
           color1="#081a2d"
           color2="#27d3ff"
           speed={0.9}
@@ -307,7 +307,7 @@ function HowItWorksSection() {
           {steps.map((step, i) => (
             <div key={i} className="relative">
               {i < steps.length - 1 && (
-                <div className="absolute top-8 left-full hidden h-px w-full bg-gradient-to-r from-border to-transparent lg:block" />
+                <div className="absolute top-8 left-full hidden h-px w-full bg-linear-to-r from-border to-transparent lg:block" />
               )}
               <div className="relative rounded-xl border border-border bg-card p-6">
                 <div className="mb-4 text-4xl font-bold text-primary/20">{step.step}</div>
@@ -530,7 +530,7 @@ function ContactSection() {
   return (
     <section id="contact" className="py-24">
       <div className="mx-auto max-w-7xl px-6">
-        <div className="rounded-2xl border border-border bg-gradient-to-br from-primary/10 via-card to-card p-8 md:p-16">
+        <div className="rounded-2xl border border-border bg-linear-to-br from-primary/10 via-card to-card p-8 md:p-16">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="mb-4 text-3xl font-bold tracking-tight md:text-4xl">
               Ready to transform your content marketing?

@@ -1,12 +1,18 @@
 from os import getenv
 
 from dotenv import load_dotenv
+
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api.auth import router as auth_router
+from api.generations import router as generations_router
 from api.routes import router as api_router
-
-load_dotenv()
+from api.settings import router as settings_router
+from db.config import database_url, encryption_key, jwt_secret
+from db.session import init_db
 
 app = FastAPI(
     title="Enterprise Content AI Backend",
@@ -22,6 +28,18 @@ app.add_middleware(
 )
 
 app.include_router(api_router)
+app.include_router(auth_router)
+app.include_router(settings_router)
+app.include_router(generations_router)
+
+
+@app.on_event("startup")
+def startup() -> None:
+    # Validate required environment variables up front and initialize DB tables.
+    database_url()
+    jwt_secret()
+    encryption_key()
+    init_db()
 
 
 @app.get("/health")

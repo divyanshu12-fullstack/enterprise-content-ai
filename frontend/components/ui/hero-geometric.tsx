@@ -201,7 +201,7 @@ export function HeroGeometric({
 
             {(title1 || title2 || description) && (
                 <div className="relative z-10 w-full flex-1 flex flex-col items-center justify-center pt-8 pb-8 md:pt-20 md:pb-20">
-                    <div className="w-full max-w-[1200px] px-6 flex flex-col items-center">
+                    <div className="w-full max-w-300 px-6 flex flex-col items-center">
                         <div className="flex flex-col items-center text-center gap-2 md:gap-4 mb-8 md:mb-12">
                             {title1 && (
                                 <div className="overflow-hidden">
@@ -230,7 +230,7 @@ export function HeroGeometric({
                         </div>
 
                         {description && (
-                            <div className="max-w-[480px] text-center mb-8">
+                            <div className="max-w-120 text-center mb-8">
                                 <motion.p
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}

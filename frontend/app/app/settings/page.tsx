@@ -1,495 +1,397 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  Settings,
-  Key,
-  Eye,
-  EyeOff,
-  Save,
-  AlertTriangle,
-  CheckCircle2,
-  Sparkles,
-  Shield,
-  Bell,
-  Palette,
-  Database,
-  Zap,
-  RotateCcw,
-  ExternalLink
+    AlertTriangle,
+    CheckCircle2,
+    Eye,
+    EyeOff,
+    ExternalLink,
+    Key,
+    RefreshCw,
+    Save,
+    Shield,
+    SlidersHorizontal,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { clearGenerations, getSettings, setApiKey, testApiKey, updateSettings } from "@/lib/api";
 
 const models = [
-  { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash", description: "Fast, efficient for most tasks" },
-  { value: "gemini-2.0-pro", label: "Gemini 2.0 Pro", description: "Best quality, slower" },
-  { value: "gemini-1.5-flash", label: "Gemini 1.5 Flash", description: "Previous gen, very fast" },
-  { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro", description: "Previous gen, high quality" },
+    { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", description: "Balanced latest model" },
+    { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash", description: "Fast for most workflows" },
+    { value: "gemini-2.0-pro", label: "Gemini 2.0 Pro", description: "Higher quality, slower" },
+    { value: "gemini-1.5-flash", label: "Gemini 1.5 Flash", description: "Legacy fast" },
+    { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro", description: "Legacy high quality" },
 ];
 
-const blockedWords = [
-  "guarantee",
-  "promise",
-  "investment advice",
-  "guaranteed returns",
-  "risk-free",
-  "100% safe",
-];
+const blockedWords = ["guarantee", "promise", "investment advice", "guaranteed returns", "risk-free", "100% safe"];
 
 export default function SettingsPage() {
-  const [apiKey, setApiKey] = useState("");
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("gemini-2.0-flash");
-  const [customBlockedWords, setCustomBlockedWords] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
+    const [apiKey, setApiKeyValue] = useState("");
+    const [showApiKey, setShowApiKey] = useState(false);
+    const [selectedModel, setSelectedModel] = useState("gemini-2.0-flash");
+    const [customBlockedWords, setCustomBlockedWords] = useState("");
+    const [isSaving, setIsSaving] = useState(false);
 
-  // Notification settings
-  const [notifications, setNotifications] = useState({
-    email: true,
-    push: false,
-    slack: false,
-    onApproval: true,
-    onRejection: true,
-    weeklyReport: true,
-  });
-
-  // Generation settings
-  const [generationSettings, setGenerationSettings] = useState({
-    autoRetry: true,
-    maxRetries: 2,
-    includeSourceUrls: true,
-    autoGenerateImage: true,
-    strictCompliance: true,
-  });
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsSaving(false);
-    toast.success("Settings saved successfully");
-  };
-
-  const handleTestConnection = async () => {
-    if (!apiKey) {
-      toast.error("Please enter an API key first");
-      return;
-    }
-    toast.promise(
-      new Promise((resolve) => setTimeout(resolve, 2000)),
-      {
-        loading: "Testing connection...",
-        success: "API key is valid and connected!",
-        error: "Failed to connect. Check your API key.",
-      }
-    );
-  };
-
-  const handleResetDefaults = () => {
-    setSelectedModel("gemini-2.0-flash");
-    setGenerationSettings({
-      autoRetry: true,
-      maxRetries: 2,
-      includeSourceUrls: true,
-      autoGenerateImage: true,
-      strictCompliance: true,
+    const [notifications, setNotifications] = useState({
+        email: true,
+        push: false,
+        slack: false,
+        onApproval: true,
+        onRejection: true,
+        weeklyReport: true,
     });
-    toast.success("Settings reset to defaults");
-  };
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-        <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-4 py-3 pl-14 md:h-16 md:flex-nowrap md:px-6 md:py-0 md:pl-6">
-          <div>
-            <h1 className="text-lg font-semibold md:text-xl">Settings</h1>
-            <p className="text-sm text-muted-foreground">Configure your ContentAI preferences</p>
-          </div>
-          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:gap-3">
-            <Button variant="outline" onClick={handleResetDefaults}>
-              <RotateCcw className="mr-2 h-4 w-4" />
-              Reset Defaults
-            </Button>
-            <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? (
-                <>Saving...</>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Changes
-                </>
-              )}
-            </Button>
-          </div>
+    const [generationSettings, setGenerationSettings] = useState({
+        autoRetry: true,
+        maxRetries: 2,
+        includeSourceUrls: true,
+        autoGenerateImage: true,
+        strictCompliance: true,
+    });
+
+    useEffect(() => {
+        let active = true;
+        const load = async () => {
+            try {
+                const settings = await getSettings();
+                if (!active) return;
+
+                setSelectedModel(settings.selected_model);
+                setGenerationSettings({
+                    autoRetry: settings.auto_retry,
+                    maxRetries: settings.max_retries,
+                    includeSourceUrls: settings.include_source_urls,
+                    autoGenerateImage: settings.auto_generate_image,
+                    strictCompliance: settings.strict_compliance,
+                });
+                setNotifications({
+                    email: settings.notifications_email,
+                    push: settings.notifications_push,
+                    slack: settings.notifications_slack,
+                    onApproval: settings.notifications_on_approval,
+                    onRejection: settings.notifications_on_rejection,
+                    weeklyReport: settings.notifications_weekly_report,
+                });
+                setCustomBlockedWords(settings.custom_blocked_words.join("\n"));
+            } catch {
+                toast.error("Unable to load settings");
+            }
+        };
+
+        load();
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await updateSettings({
+                selected_model: selectedModel,
+                auto_retry: generationSettings.autoRetry,
+                max_retries: generationSettings.maxRetries,
+                include_source_urls: generationSettings.includeSourceUrls,
+                auto_generate_image: generationSettings.autoGenerateImage,
+                strict_compliance: generationSettings.strictCompliance,
+                notifications_email: notifications.email,
+                notifications_push: notifications.push,
+                notifications_slack: notifications.slack,
+                notifications_on_approval: notifications.onApproval,
+                notifications_on_rejection: notifications.onRejection,
+                notifications_weekly_report: notifications.weeklyReport,
+                custom_blocked_words: customBlockedWords
+                    .split("\n")
+                    .map((word) => word.trim())
+                    .filter(Boolean),
+            });
+
+            if (apiKey.trim()) {
+                await setApiKey(apiKey.trim());
+            }
+
+            toast.success("Settings saved");
+        } catch {
+            toast.error("Save failed", { description: "Please try again." });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleTestConnection = async () => {
+        if (!apiKey.trim()) {
+            toast.error("Enter an API key first");
+            return;
+        }
+
+        try {
+            await setApiKey(apiKey.trim());
+            const result = await testApiKey();
+            if (result.ok) {
+                toast.success("Connection successful");
+            }
+        } catch {
+            toast.error("Failed to connect. Check your API key.");
+        }
+    };
+
+    const handleResetDefaults = () => {
+        setSelectedModel("gemini-2.0-flash");
+        setGenerationSettings({
+            autoRetry: true,
+            maxRetries: 2,
+            includeSourceUrls: true,
+            autoGenerateImage: true,
+            strictCompliance: true,
+        });
+        toast.success("Defaults restored");
+    };
+
+    return (
+        <div className="min-h-screen bg-transparent">
+            <header className="app-header-glass sticky top-0 z-30 border-b border-border/80">
+                <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-4 py-3 pl-14 md:h-16 md:flex-nowrap md:px-8 md:py-0 md:pl-8">
+                    <div>
+                        <h1 className="text-lg font-semibold tracking-tight md:text-xl">Settings</h1>
+                        <p className="text-sm text-muted-foreground">Model, governance, and workspace behavior</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={handleResetDefaults}>
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Reset
+                        </Button>
+                        <Button onClick={handleSave} disabled={isSaving}>
+                            <Save className="mr-2 h-4 w-4" />
+                            {isSaving ? "Saving" : "Save"}
+                        </Button>
+                    </div>
+                </div>
+            </header>
+
+            <div className="px-4 py-6 md:px-8 md:py-8">
+                <div className="mx-auto w-full max-w-5xl space-y-6">
+                    <Card className="app-panel border-border/80">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-base">
+                                <Key className="h-4 w-4" />
+                                API access
+                            </CardTitle>
+                            <CardDescription>Set your Gemini API key and model choice</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="apiKey">Gemini API key</Label>
+                                <div className="flex flex-col gap-2 sm:flex-row">
+                                    <div className="relative flex-1">
+                                        <Input
+                                            id="apiKey"
+                                            type={showApiKey ? "text" : "password"}
+                                            value={apiKey}
+                                            onChange={(e) => setApiKeyValue(e.target.value)}
+                                            className="border-border bg-input pr-10"
+                                            placeholder="Paste API key"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowApiKey((prev) => !prev)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                        >
+                                            {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        </button>
+                                    </div>
+                                    <Button variant="outline" onClick={handleTestConnection}>Test key</Button>
+                                </div>
+                                <a
+                                    href="https://aistudio.google.com/apikey"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                                >
+                                    <ExternalLink className="h-3 w-3" />
+                                    Open Google AI Studio
+                                </a>
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-2">
+                                <Label>Model</Label>
+                                <Select value={selectedModel} onValueChange={setSelectedModel}>
+                                    <SelectTrigger className="border-border bg-input">
+                                        <SelectValue placeholder="Choose model" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {models.map((model) => (
+                                            <SelectItem key={model.value} value={model.value}>
+                                                {model.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground">
+                                    {models.find((item) => item.value === selectedModel)?.description}
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="app-panel border-border/80">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-base">
+                                <SlidersHorizontal className="h-4 w-4" />
+                                Generation behavior
+                            </CardTitle>
+                            <CardDescription>Configure retry, sources, imagery, and strictness</CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid gap-3 sm:grid-cols-2">
+                            <div className="rounded-lg border border-border bg-card p-3">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-sm">Auto retry</Label>
+                                    <Switch
+                                        checked={generationSettings.autoRetry}
+                                        onCheckedChange={(checked) => setGenerationSettings({ ...generationSettings, autoRetry: checked })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="rounded-lg border border-border bg-card p-3">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-sm">Include source URLs</Label>
+                                    <Switch
+                                        checked={generationSettings.includeSourceUrls}
+                                        onCheckedChange={(checked) =>
+                                            setGenerationSettings({ ...generationSettings, includeSourceUrls: checked })
+                                        }
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="rounded-lg border border-border bg-card p-3">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-sm">Auto-generate image prompts</Label>
+                                    <Switch
+                                        checked={generationSettings.autoGenerateImage}
+                                        onCheckedChange={(checked) =>
+                                            setGenerationSettings({ ...generationSettings, autoGenerateImage: checked })
+                                        }
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="rounded-lg border border-border bg-card p-3">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-sm">Strict compliance</Label>
+                                    <Switch
+                                        checked={generationSettings.strictCompliance}
+                                        onCheckedChange={(checked) =>
+                                            setGenerationSettings({ ...generationSettings, strictCompliance: checked })
+                                        }
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="rounded-lg border border-border bg-card p-3 sm:col-span-2">
+                                <Label className="mb-2 block text-sm">Max retry attempts</Label>
+                                <Select
+                                    value={generationSettings.maxRetries.toString()}
+                                    onValueChange={(v) =>
+                                        setGenerationSettings({ ...generationSettings, maxRetries: parseInt(v, 10) })
+                                    }
+                                >
+                                    <SelectTrigger className="w-full border-border bg-input sm:w-44">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="1">1 retry</SelectItem>
+                                        <SelectItem value="2">2 retries</SelectItem>
+                                        <SelectItem value="3">3 retries</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="app-panel border-border/80">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-base">
+                                <Shield className="h-4 w-4" />
+                                Compliance
+                            </CardTitle>
+                            <CardDescription>Default and custom blocked language</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-5">
+                            <div>
+                                <p className="mb-2 text-sm font-medium">Default blocked words</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {blockedWords.map((word) => (
+                                        <Badge key={word} variant="outline" className="border-destructive/40 bg-destructive/10 text-destructive">
+                                            <AlertTriangle className="mr-1 h-3 w-3" />
+                                            {word}
+                                        </Badge>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="customBlocked">Custom blocked words</Label>
+                                <Textarea
+                                    id="customBlocked"
+                                    value={customBlockedWords}
+                                    onChange={(e) => setCustomBlockedWords(e.target.value)}
+                                    className="min-h-28 resize-none border-border bg-input"
+                                    placeholder="One word or phrase per line"
+                                />
+                            </div>
+
+                            <div className="rounded-lg border border-success/30 bg-success/10 p-3">
+                                <p className="flex items-center gap-2 text-sm font-medium text-success">
+                                    <CheckCircle2 className="h-4 w-4" />
+                                    Governance checks enabled
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="app-panel border-destructive/40">
+                        <CardHeader>
+                            <CardTitle className="text-base text-destructive">Danger zone</CardTitle>
+                            <CardDescription>Irreversible workspace actions</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            <div className="flex flex-col gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    <p className="text-sm font-medium">Clear generation history</p>
+                                    <p className="text-xs text-muted-foreground">Delete all generated records</p>
+                                </div>
+                                <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={async () => {
+                                        try {
+                                            const result = await clearGenerations();
+                                            toast.success(`Cleared ${result.deleted} generation(s)`);
+                                        } catch {
+                                            toast.error("Failed to clear history");
+                                        }
+                                    }}
+                                >
+                                    Clear history
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
         </div>
-      </header>
-
-      <div className="px-4 py-5 md:p-6">
-        <div className="mx-auto max-w-4xl space-y-6">
-          {/* API Configuration */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Key className="h-5 w-5 text-primary" />
-                API Configuration
-              </CardTitle>
-              <CardDescription>
-                Configure your Gemini API key and model preferences
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* API Key */}
-              <div className="space-y-2">
-                <Label htmlFor="apiKey">Gemini API Key</Label>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <div className="relative flex-1">
-                    <Input
-                      id="apiKey"
-                      type={showApiKey ? "text" : "password"}
-                      placeholder="Enter your Gemini API key..."
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                      className="pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowApiKey(!showApiKey)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showApiKey ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                  <Button variant="outline" onClick={handleTestConnection} className="w-full sm:w-auto">
-                    Test Connection
-                  </Button>
-                </div>
-                <p className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <ExternalLink className="h-3 w-3" />
-                  <a
-                    href="https://aistudio.google.com/apikey"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline hover:text-foreground"
-                  >
-                    Get your API key from Google AI Studio
-                  </a>
-                </p>
-              </div>
-
-              <Separator />
-
-              {/* Model Selection */}
-              <div className="space-y-2">
-                <Label htmlFor="model">AI Model</Label>
-                <Select value={selectedModel} onValueChange={setSelectedModel}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select model..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {models.map((model) => (
-                      <SelectItem key={model.value} value={model.value}>
-                        <div className="flex flex-col">
-                          <span>{model.label}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {model.description}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Model info */}
-              <div className="rounded-lg border border-border bg-secondary/30 p-4">
-                <div className="flex items-start gap-3">
-                  <Sparkles className="h-5 w-5 shrink-0 text-primary" />
-                  <div>
-                    <p className="text-sm font-medium">Current Model: {models.find(m => m.value === selectedModel)?.label}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {models.find(m => m.value === selectedModel)?.description}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Generation Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-primary" />
-                Generation Settings
-              </CardTitle>
-              <CardDescription>
-                Configure how content is generated
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid gap-6 sm:grid-cols-2">
-                <div className="flex items-center justify-between rounded-lg border border-border p-4">
-                  <div>
-                    <Label className="text-sm font-medium">Auto Retry on Failure</Label>
-                    <p className="text-xs text-muted-foreground">Automatically retry if generation fails</p>
-                  </div>
-                  <Switch
-                    checked={generationSettings.autoRetry}
-                    onCheckedChange={(checked) =>
-                      setGenerationSettings({ ...generationSettings, autoRetry: checked })
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between rounded-lg border border-border p-4">
-                  <div>
-                    <Label className="text-sm font-medium">Include Source URLs</Label>
-                    <p className="text-xs text-muted-foreground">Add research sources to output</p>
-                  </div>
-                  <Switch
-                    checked={generationSettings.includeSourceUrls}
-                    onCheckedChange={(checked) =>
-                      setGenerationSettings({ ...generationSettings, includeSourceUrls: checked })
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between rounded-lg border border-border p-4">
-                  <div>
-                    <Label className="text-sm font-medium">Auto Generate Images</Label>
-                    <p className="text-xs text-muted-foreground">Create visual prompts automatically</p>
-                  </div>
-                  <Switch
-                    checked={generationSettings.autoGenerateImage}
-                    onCheckedChange={(checked) =>
-                      setGenerationSettings({ ...generationSettings, autoGenerateImage: checked })
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between rounded-lg border border-border p-4">
-                  <div>
-                    <Label className="text-sm font-medium">Strict Compliance</Label>
-                    <p className="text-xs text-muted-foreground">Enforce stricter brand rules</p>
-                  </div>
-                  <Switch
-                    checked={generationSettings.strictCompliance}
-                    onCheckedChange={(checked) =>
-                      setGenerationSettings({ ...generationSettings, strictCompliance: checked })
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Max Retry Attempts</Label>
-                <Select
-                  value={generationSettings.maxRetries.toString()}
-                  onValueChange={(v) => setGenerationSettings({ ...generationSettings, maxRetries: parseInt(v) })}
-                >
-                  <SelectTrigger className="w-full sm:w-50">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1 retry</SelectItem>
-                    <SelectItem value="2">2 retries</SelectItem>
-                    <SelectItem value="3">3 retries</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Compliance Rules */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-primary" />
-                Compliance Rules
-              </CardTitle>
-              <CardDescription>
-                Configure brand governance and blocked content
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Default blocked words */}
-              <div className="space-y-3">
-                <Label>Default Blocked Words</Label>
-                <div className="flex flex-wrap gap-2">
-                  {blockedWords.map((word, i) => (
-                    <Badge
-                      key={i}
-                      variant="secondary"
-                      className="bg-destructive/10 text-destructive border-destructive/20"
-                    >
-                      <AlertTriangle className="mr-1 h-3 w-3" />
-                      {word}
-                    </Badge>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  These words will cause content to be rejected automatically
-                </p>
-              </div>
-
-              <Separator />
-
-              {/* Custom blocked words */}
-              <div className="space-y-2">
-                <Label htmlFor="customBlocked">Custom Blocked Words</Label>
-                <Textarea
-                  id="customBlocked"
-                  placeholder="Enter additional blocked words or phrases, one per line..."
-                  value={customBlockedWords}
-                  onChange={(e) => setCustomBlockedWords(e.target.value)}
-                  className="min-h-25 resize-none"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Add your company-specific terms that should be flagged
-                </p>
-              </div>
-
-              {/* Compliance status */}
-              <div className="rounded-lg border border-success/20 bg-success/5 p-4">
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-success" />
-                  <div>
-                    <p className="text-sm font-medium text-success">Compliance Active</p>
-                    <p className="text-xs text-muted-foreground">
-                      All content will be reviewed by the Brand Governance Agent
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Notifications */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5 text-primary" />
-                Notifications
-              </CardTitle>
-              <CardDescription>
-                Configure how you receive updates
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="flex items-center justify-between rounded-lg border border-border p-4">
-                  <div>
-                    <Label className="text-sm font-medium">Email Notifications</Label>
-                    <p className="text-xs text-muted-foreground">Receive updates via email</p>
-                  </div>
-                  <Switch
-                    checked={notifications.email}
-                    onCheckedChange={(checked) =>
-                      setNotifications({ ...notifications, email: checked })
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between rounded-lg border border-border p-4">
-                  <div>
-                    <Label className="text-sm font-medium">Push Notifications</Label>
-                    <p className="text-xs text-muted-foreground">Browser push notifications</p>
-                  </div>
-                  <Switch
-                    checked={notifications.push}
-                    onCheckedChange={(checked) =>
-                      setNotifications({ ...notifications, push: checked })
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between rounded-lg border border-border p-4">
-                  <div>
-                    <Label className="text-sm font-medium">Slack Integration</Label>
-                    <p className="text-xs text-muted-foreground">Post to Slack channel</p>
-                  </div>
-                  <Switch
-                    checked={notifications.slack}
-                    onCheckedChange={(checked) =>
-                      setNotifications({ ...notifications, slack: checked })
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between rounded-lg border border-border p-4">
-                  <div>
-                    <Label className="text-sm font-medium">Weekly Report</Label>
-                    <p className="text-xs text-muted-foreground">Get weekly analytics summary</p>
-                  </div>
-                  <Switch
-                    checked={notifications.weeklyReport}
-                    onCheckedChange={(checked) =>
-                      setNotifications({ ...notifications, weeklyReport: checked })
-                    }
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Danger Zone */}
-          <Card className="border-destructive/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-destructive">
-                <AlertTriangle className="h-5 w-5" />
-                Danger Zone
-              </CardTitle>
-              <CardDescription>
-                Irreversible actions - proceed with caution
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-col items-start gap-3 rounded-lg border border-destructive/20 p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm font-medium">Clear Generation History</p>
-                  <p className="text-xs text-muted-foreground">
-                    Delete all previous content generations
-                  </p>
-                </div>
-                <Button variant="destructive" size="sm">
-                  Clear History
-                </Button>
-              </div>
-              <div className="flex flex-col items-start gap-3 rounded-lg border border-destructive/20 p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm font-medium">Delete Account</p>
-                  <p className="text-xs text-muted-foreground">
-                    Permanently delete your account and all data
-                  </p>
-                </div>
-                <Button variant="destructive" size="sm">
-                  Delete Account
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
-  );
+    );
 }

@@ -1,0 +1,233 @@
+import uuid
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
+from sqlmodel import Session, select
+from sqlalchemy import func
+
+from api.deps import get_current_user
+from db.models import Generation, User
+from db.session import get_session
+
+router = APIRouter(prefix="/api/generations", tags=["generations"])
+
+
+class GenerationCreateRequest(BaseModel):
+    topic: str = Field(..., min_length=3, max_length=300)
+    audience: str = Field(..., min_length=2, max_length=120)
+    content_type: str | None = Field(default=None, max_length=80)
+    tone: str | None = Field(default=None, max_length=80)
+    additional_context: str | None = None
+
+    linkedin_post: str | None = None
+    twitter_post: str | None = Field(default=None, max_length=280)
+    image_prompt: str | None = None
+    compliance_status: str = Field(default="PENDING", max_length=20)
+    compliance_notes: str | None = None
+
+    status: str = Field(default="PENDING", max_length=20)
+    error_message: str | None = None
+    duration_ms: int | None = None
+
+
+class GenerationResponse(BaseModel):
+    id: str
+    topic: str
+    audience: str
+    content_type: str | None
+    tone: str | None
+    additional_context: str | None
+    linkedin_post: str | None
+    twitter_post: str | None
+    image_prompt: str | None
+    compliance_status: str
+    compliance_notes: str | None
+    status: str
+    error_message: str | None
+    duration_ms: int | None
+    created_at: datetime
+    completed_at: datetime | None
+
+
+class GenerationListResponse(BaseModel):
+    items: list[GenerationResponse]
+    total: int
+
+
+class GenerationActionRequest(BaseModel):
+    notes: str | None = None
+
+
+
+def _to_response(record: Generation) -> GenerationResponse:
+    return GenerationResponse(
+        id=str(record.id),
+        topic=record.topic,
+        audience=record.audience,
+        content_type=record.content_type,
+        tone=record.tone,
+        additional_context=record.additional_context,
+        linkedin_post=record.linkedin_post,
+        twitter_post=record.twitter_post,
+        image_prompt=record.image_prompt,
+        compliance_status=record.compliance_status,
+        compliance_notes=record.compliance_notes,
+        status=record.status,
+        error_message=record.error_message,
+        duration_ms=record.duration_ms,
+        created_at=record.created_at,
+        completed_at=record.completed_at,
+    )
+
+
+@router.post("", response_model=GenerationResponse)
+def create_generation(
+    payload: GenerationCreateRequest,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> GenerationResponse:
+    record = Generation(user_id=current_user.id, **payload.model_dump())
+    if record.status.upper() in {"COMPLETED", "SUCCESS", "FAILED"}:
+        record.completed_at = datetime.now(timezone.utc)
+
+    session.add(record)
+    session.commit()
+    session.refresh(record)
+    return _to_response(record)
+
+
+@router.get("", response_model=GenerationListResponse)
+def list_generations(
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+    status: str | None = Query(default=None),
+    search: str | None = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> GenerationListResponse:
+    statement = select(Generation).where(Generation.user_id == current_user.id)
+    if status:
+        statement = statement.where(func.lower(Generation.status) == status.lower())
+    if search:
+        like = f"%{search}%"
+        statement = statement.where((Generation.topic.ilike(like)) | (Generation.audience.ilike(like)))
+
+    ordered = statement.order_by(Generation.created_at.desc())
+    rows = session.exec(ordered.offset(offset).limit(limit)).all()
+    total = session.exec(select(func.count()).select_from(statement.subquery())).one()
+    return GenerationListResponse(items=[_to_response(r) for r in rows], total=int(total))
+
+
+@router.get("/{generation_id}", response_model=GenerationResponse)
+def get_generation(
+    generation_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> GenerationResponse:
+    record = session.exec(
+        select(Generation).where(Generation.id == generation_id, Generation.user_id == current_user.id)
+    ).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Generation not found")
+    return _to_response(record)
+
+
+@router.delete("/{generation_id}")
+def delete_generation(
+    generation_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> dict[str, str]:
+    record = session.exec(
+        select(Generation).where(Generation.id == generation_id, Generation.user_id == current_user.id)
+    ).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Generation not found")
+
+    session.delete(record)
+    session.commit()
+    return {"status": "ok"}
+
+
+@router.delete("")
+def clear_generations(
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> dict[str, int]:
+    rows = session.exec(select(Generation).where(Generation.user_id == current_user.id)).all()
+    for row in rows:
+        session.delete(row)
+    session.commit()
+    return {"deleted": len(rows)}
+
+
+@router.post("/{generation_id}/approve", response_model=GenerationResponse)
+def approve_generation(
+    generation_id: uuid.UUID,
+    payload: GenerationActionRequest,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> GenerationResponse:
+    record = session.exec(
+        select(Generation).where(Generation.id == generation_id, Generation.user_id == current_user.id)
+    ).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Generation not found")
+
+    record.compliance_status = "APPROVED"
+    record.status = "APPROVED"
+    if payload.notes:
+        record.compliance_notes = payload.notes
+    record.completed_at = datetime.now(timezone.utc)
+    session.add(record)
+    session.commit()
+    session.refresh(record)
+    return _to_response(record)
+
+
+@router.post("/{generation_id}/reject", response_model=GenerationResponse)
+def reject_generation(
+    generation_id: uuid.UUID,
+    payload: GenerationActionRequest,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> GenerationResponse:
+    record = session.exec(
+        select(Generation).where(Generation.id == generation_id, Generation.user_id == current_user.id)
+    ).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Generation not found")
+
+    record.compliance_status = "REJECTED"
+    record.status = "REJECTED"
+    if payload.notes:
+        record.compliance_notes = payload.notes
+    record.completed_at = datetime.now(timezone.utc)
+    session.add(record)
+    session.commit()
+    session.refresh(record)
+    return _to_response(record)
+
+
+@router.post("/{generation_id}/publish", response_model=GenerationResponse)
+def publish_generation(
+    generation_id: uuid.UUID,
+    payload: GenerationActionRequest,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> GenerationResponse:
+    record = session.exec(
+        select(Generation).where(Generation.id == generation_id, Generation.user_id == current_user.id)
+    ).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Generation not found")
+
+    record.status = "PUBLISHED"
+    if payload.notes:
+        record.compliance_notes = payload.notes
+    record.completed_at = datetime.now(timezone.utc)
+    session.add(record)
+    session.commit()
+    session.refresh(record)
+    return _to_response(record)

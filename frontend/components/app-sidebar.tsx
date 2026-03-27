@@ -59,32 +59,32 @@ export function AppSidebar() {
 
   const navLinks = (
     <nav className="space-y-1 px-4 py-4">
-        <div className="mb-3 px-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-          Workspace
-        </div>
-        {navItems.map((item) => {
-          const isActive = pathname === item.href || (item.href !== "/app" && pathname.startsWith(item.href));
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setOpen(false)}
-              className={cn(
-                navLinkClasses,
-                isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
-              )}
-            >
-              <item.icon className={cn("h-4 w-4", isActive && "text-primary-foreground")} />
-              {item.title}
-              {isActive && (
-                <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary-foreground" />
-              )}
-            </Link>
-          );
-        })}
-      </nav>
+      <div className="mb-3 px-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+        Workspace
+      </div>
+      {navItems.map((item) => {
+        const isActive = pathname === item.href || (item.href !== "/app" && pathname.startsWith(item.href));
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={() => setOpen(false)}
+            className={cn(
+              navLinkClasses,
+              isActive
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            )}
+          >
+            <item.icon className={cn("h-4 w-4", isActive && "text-primary-foreground")} />
+            {item.title}
+            {isActive && (
+              <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary-foreground" />
+            )}
+          </Link>
+        );
+      })}
+    </nav>
   );
 
   const statusAndActions = (

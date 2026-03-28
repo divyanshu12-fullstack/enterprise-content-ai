@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
@@ -13,7 +14,7 @@ router = APIRouter(prefix="/api/settings", tags=["settings"])
 
 
 class SettingsUpsertRequest(BaseModel):
-    selected_model: str = Field(default="gemini-2.5-flash", min_length=3, max_length=100)
+    selected_model: Literal["gemini-3.1-flash", "gemini-3.1-pro", "gemini-2.5-flash"] = "gemini-3.1-flash"
     auto_retry: bool = True
     max_retries: int = Field(default=2, ge=1, le=10)
     include_source_urls: bool = True

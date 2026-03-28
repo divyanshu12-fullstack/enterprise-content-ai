@@ -2,6 +2,7 @@ import json
 import re
 import uuid
 from typing import Any
+from collections.abc import Callable
 
 from crewai import Crew, Process
 from dotenv import load_dotenv
@@ -39,7 +40,10 @@ def _kickoff_and_validate(
     additional_context: str | None = None,
     policy_text: str | None = None,
     blocked_words: list[str] | None = None,
+    progress_callback: Callable[[str, str], None] | None = None,
 ) -> FinalContentOutput:
+    if progress_callback:
+        progress_callback("research", "Gathering market context")
     print(f"[TASK {run_id}] Kicking off crew execution...")
     result = crew.kickoff(
         inputs={
@@ -53,12 +57,18 @@ def _kickoff_and_validate(
     )
 
     raw_output = getattr(result, "raw", str(result))
+    if progress_callback:
+        progress_callback("writing", "Drafting LinkedIn and Twitter content")
     print(f"\n[RESULT {run_id}] Raw final output from crew:")
     print(raw_output)
 
     parsed_json = _extract_json_block(raw_output)
+    if progress_callback:
+        progress_callback("compliance", "Applying deterministic compliance checks")
     parsed_json = apply_deterministic_compliance(parsed_json, blocked_words=blocked_words)
     validated = FinalContentOutput.model_validate(parsed_json)
+    if progress_callback:
+        progress_callback("visual", "Preparing final visual prompt package")
     return validated
 
 
@@ -77,6 +87,7 @@ def run_content_pipeline(
     auto_generate_image: bool = True,
     strict_compliance: bool = True,
     blocked_words: list[str] | None = None,
+    progress_callback: Callable[[str, str], None] | None = None,
 ) -> FinalContentOutput:
     run_id = uuid.uuid4().hex[:8]
     print(f"\n[INIT {run_id}] Starting CrewAI content pipeline")
@@ -92,6 +103,8 @@ def run_content_pipeline(
         print(f"[INIT {run_id}] Policy text provided: yes")
     if model_name:
         print(f"[INIT {run_id}] Runtime model override: {model_name}")
+    if progress_callback:
+        progress_callback("init", "Initializing generation pipeline")
 
     agents = build_agents(model_name=model_name, api_key=api_key)
     tasks = build_tasks(
@@ -119,6 +132,8 @@ def run_content_pipeline(
 
     for attempt in range(1, attempts + 1):
         try:
+            if progress_callback and attempts > 1:
+                progress_callback("retry", f"Running attempt {attempt} of {attempts}")
             validated = _kickoff_and_validate(
                 crew=crew,
                 topic=topic,
@@ -129,6 +144,7 @@ def run_content_pipeline(
                 additional_context=additional_context,
                 policy_text=policy_text,
                 blocked_words=blocked_words,
+                progress_callback=progress_callback,
             )
             break
         except (ValueError, ValidationError, json.JSONDecodeError) as exc:
@@ -142,6 +158,8 @@ def run_content_pipeline(
 
     print(f"\n[VALIDATION {run_id}] Parsed + validated FinalContentOutput:")
     print(validated.model_dump_json(indent=2))
+    if progress_callback:
+        progress_callback("done", "Generation complete")
     return validated
 
 

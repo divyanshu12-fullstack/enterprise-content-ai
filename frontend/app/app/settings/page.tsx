@@ -26,11 +26,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { clearGenerations, getSettings, setApiKey, testApiKey, updateSettings } from "@/lib/api";
 
 const models = [
-    { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", description: "Balanced latest model" },
-    { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash", description: "Fast for most workflows" },
-    { value: "gemini-2.0-pro", label: "Gemini 2.0 Pro", description: "Higher quality, slower" },
-    { value: "gemini-1.5-flash", label: "Gemini 1.5 Flash", description: "Legacy fast" },
-    { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro", description: "Legacy high quality" },
+    { value: "gemini-3.1-flash", label: "Gemini 3.1 Flash", description: "Fast, newest generation" },
+    { value: "gemini-3.1-pro", label: "Gemini 3.1 Pro", description: "Highest quality, newest generation" },
+    { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", description: "Stable fallback for compatibility" },
 ];
 
 const blockedWords = ["guarantee", "promise", "investment advice", "guaranteed returns", "risk-free", "100% safe"];
@@ -38,9 +36,15 @@ const blockedWords = ["guarantee", "promise", "investment advice", "guaranteed r
 export default function SettingsPage() {
     const [apiKey, setApiKeyValue] = useState("");
     const [showApiKey, setShowApiKey] = useState(false);
-    const [selectedModel, setSelectedModel] = useState("gemini-2.0-flash");
+    const [selectedModel, setSelectedModel] = useState("gemini-3.1-flash");
     const [customBlockedWords, setCustomBlockedWords] = useState("");
     const [isSaving, setIsSaving] = useState(false);
+    const [isTestingApiKey, setIsTestingApiKey] = useState(false);
+    const [hasStoredApiKey, setHasStoredApiKey] = useState(false);
+    const [apiKeyTestResult, setApiKeyTestResult] = useState<{
+        status: "idle" | "success" | "error";
+        message: string;
+    }>({ status: "idle", message: "" });
 
     const [notifications, setNotifications] = useState({
         email: true,
@@ -83,6 +87,7 @@ export default function SettingsPage() {
                     weeklyReport: settings.notifications_weekly_report,
                 });
                 setCustomBlockedWords(settings.custom_blocked_words.join("\n"));
+                setHasStoredApiKey(settings.has_api_key);
             } catch {
                 toast.error("Unable to load settings");
             }
@@ -118,6 +123,7 @@ export default function SettingsPage() {
 
             if (apiKey.trim()) {
                 await setApiKey(apiKey.trim());
+                setHasStoredApiKey(true);
             }
 
             toast.success("Settings saved");
@@ -129,24 +135,37 @@ export default function SettingsPage() {
     };
 
     const handleTestConnection = async () => {
-        if (!apiKey.trim()) {
+        const typedKey = apiKey.trim();
+        if (!typedKey) {
+            setApiKeyTestResult({
+                status: "error",
+                message: "API key cannot be empty.",
+            });
             toast.error("Enter an API key first");
             return;
         }
 
+        setIsTestingApiKey(true);
+        setApiKeyTestResult({ status: "idle", message: "Testing connection..." });
+
         try {
-            await setApiKey(apiKey.trim());
+            await setApiKey(typedKey);
+            setHasStoredApiKey(true);
             const result = await testApiKey();
             if (result.ok) {
+                setApiKeyTestResult({ status: "success", message: result.detail || "Connection successful." });
                 toast.success("Connection successful");
             }
         } catch {
+            setApiKeyTestResult({ status: "error", message: "Failed to connect. Check your API key." });
             toast.error("Failed to connect. Check your API key.");
+        } finally {
+            setIsTestingApiKey(false);
         }
     };
 
     const handleResetDefaults = () => {
-        setSelectedModel("gemini-2.0-flash");
+        setSelectedModel("gemini-3.1-flash");
         setGenerationSettings({
             autoRetry: true,
             maxRetries: 2,
@@ -197,7 +216,12 @@ export default function SettingsPage() {
                                             id="apiKey"
                                             type={showApiKey ? "text" : "password"}
                                             value={apiKey}
-                                            onChange={(e) => setApiKeyValue(e.target.value)}
+                                            onChange={(e) => {
+                                                setApiKeyValue(e.target.value);
+                                                if (apiKeyTestResult.message) {
+                                                    setApiKeyTestResult({ status: "idle", message: "" });
+                                                }
+                                            }}
                                             className="border-border bg-input pr-10"
                                             placeholder="Paste API key"
                                         />
@@ -209,8 +233,27 @@ export default function SettingsPage() {
                                             {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                         </button>
                                     </div>
-                                    <Button variant="outline" onClick={handleTestConnection}>Test key</Button>
+                                    <Button variant="outline" onClick={handleTestConnection} disabled={isTestingApiKey}>
+                                        {isTestingApiKey ? "Testing..." : "Test key"}
+                                    </Button>
                                 </div>
+                                {hasStoredApiKey && !apiKey.trim() && (
+                                    <p className="text-xs text-muted-foreground">
+                                        A key is saved in settings. Enter a key to run a fresh test.
+                                    </p>
+                                )}
+                                {apiKeyTestResult.message && (
+                                    <div
+                                        className={`rounded-md border px-3 py-2 text-xs ${apiKeyTestResult.status === "success"
+                                            ? "border-success/40 bg-success/10 text-success"
+                                            : apiKeyTestResult.status === "error"
+                                                ? "border-destructive/40 bg-destructive/10 text-destructive"
+                                                : "border-border bg-secondary text-muted-foreground"
+                                            }`}
+                                    >
+                                        {apiKeyTestResult.message}
+                                    </div>
+                                )}
                                 <a
                                     href="https://aistudio.google.com/apikey"
                                     target="_blank"

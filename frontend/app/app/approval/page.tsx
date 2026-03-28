@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getGeneration, publishGeneration, rejectGeneration } from "@/lib/api";
 import type { Generation } from "@/lib/schemas";
@@ -64,6 +65,7 @@ export default function ApprovalPage() {
     const [result, setResult] = useState<GenerationResult | null>(null);
     const [activeTab, setActiveTab] = useState("linkedin");
     const [isPublishing, setIsPublishing] = useState(false);
+    const [copyDialog, setCopyDialog] = useState<{ open: boolean; type: "linkedin" | "image"; url: string; } | null>(null);
 
     const mapGeneration = (g: Generation): GenerationResult => ({
         id: g.id,
@@ -105,20 +107,35 @@ export default function ApprovalPage() {
         toast.success(`${label} copied`);
     };
 
-    const handlePublish = async () => {
+    const handlePublish = async (platform: "linkedin" | "twitter") => {
         if (!result) return;
 
         setIsPublishing(true);
         try {
             await publishGeneration(result.id);
-            toast.success("Published", {
-                description: "Your approved content has been sent for publishing.",
-            });
+            if (platform === "twitter") {
+                toast.success("Published to X (Twitter)", {
+                    description: "The platform has been opened in a new tab.",
+                });
+            }
         } catch {
-            toast.error("Publish failed", { description: "Please try again." });
+            console.error("Publish status update failed");
         } finally {
             setIsPublishing(false);
         }
+
+        if (platform === "twitter") {
+            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(result.twitter_post)}`, "_blank");
+        } else if (platform === "linkedin") {
+            navigator.clipboard.writeText(result.linkedin_post);
+            setCopyDialog({ open: true, type: "linkedin", url: "https://www.linkedin.com/feed/?shareActive=true" });
+        }
+    };
+
+    const handleGenerateImage = () => {
+        if (!result) return;
+        navigator.clipboard.writeText(result.image_prompt);
+        setCopyDialog({ open: true, type: "image", url: "https://gemini.google.com/" });
     };
 
     const handleReject = async () => {
@@ -131,11 +148,6 @@ export default function ApprovalPage() {
         } catch {
             toast.error("Reject failed", { description: "Please try again." });
         }
-    };
-
-    const getPollinationsUrl = (prompt: string) => {
-        const encodedPrompt = encodeURIComponent(prompt);
-        return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1000&height=700&nologo=true`;
     };
 
     if (!result) {
@@ -263,33 +275,22 @@ export default function ApprovalPage() {
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 text-base">
                                     <ImageIcon className="h-4 w-4" />
-                                    Visual direction
+                                    Image Prompt
                                 </CardTitle>
-                                <CardDescription>Auto-generated preview and prompt</CardDescription>
+                                <CardDescription>Recommended visual directions for your post</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="relative aspect-4/3 overflow-hidden rounded-lg border border-border bg-card">
-                                    <Image
-                                        src={getPollinationsUrl(result.image_prompt)}
-                                        alt="Generated visual"
-                                        fill
-                                        className="object-cover"
-                                        unoptimized
-                                    />
-                                </div>
                                 <div className="rounded-lg border border-border bg-secondary p-3">
                                     <p className="text-xs text-muted-foreground">Prompt</p>
                                     <p className="mt-1 text-sm leading-relaxed">{result.image_prompt}</p>
                                     <div className="mt-3 flex gap-2">
                                         <Button variant="outline" size="sm" onClick={() => handleCopy(result.image_prompt, "Prompt")}>
                                             <Copy className="mr-2 h-4 w-4" />
-                                            Copy
+                                            Copy Prompt
                                         </Button>
-                                        <Button variant="outline" size="sm" asChild>
-                                            <a href={getPollinationsUrl(result.image_prompt)} target="_blank" rel="noreferrer">
-                                                <ExternalLink className="mr-2 h-4 w-4" />
-                                                Open
-                                            </a>
+                                        <Button variant="default" size="sm" onClick={handleGenerateImage}>
+                                            <ExternalLink className="mr-2 h-4 w-4" />
+                                            Generate Image in Gemini
                                         </Button>
                                     </div>
                                 </div>
@@ -304,10 +305,26 @@ export default function ApprovalPage() {
                             <CardContent className="space-y-3">
                                 {result.compliance_status === "APPROVED" ? (
                                     <>
-                                        <Button className="w-full" onClick={handlePublish} disabled={isPublishing}>
-                                            {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                                            {isPublishing ? "Publishing" : "Publish approved package"}
-                                        </Button>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <Button
+                                                variant="default"
+                                                className="w-full bg-[#0077b5] text-white hover:bg-[#0077b5]/90"
+                                                onClick={() => handlePublish("linkedin")}
+                                                disabled={isPublishing}
+                                            >
+                                                <Linkedin className="mr-2 h-4 w-4" />
+                                                Post to LinkedIn
+                                            </Button>
+                                            <Button
+                                                variant="default"
+                                                className="w-full bg-black text-white hover:bg-black/90"
+                                                onClick={() => handlePublish("twitter")}
+                                                disabled={isPublishing}
+                                            >
+                                                <Twitter className="mr-2 h-4 w-4" />
+                                                Post to X (Twitter)
+                                            </Button>
+                                        </div>
                                         <div className="grid grid-cols-2 gap-3">
                                             <Button variant="outline" onClick={handleReject}>
                                                 <RotateCcw className="mr-2 h-4 w-4" />
@@ -343,6 +360,40 @@ export default function ApprovalPage() {
                     </div>
                 </div>
             </div>
+
+            <Dialog open={!!copyDialog?.open} onOpenChange={(open) => !open && setCopyDialog(null)}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {copyDialog?.type === "linkedin" ? "Ready to Share on LinkedIn" : "Ready to Generate Image"}
+                        </DialogTitle>
+                        <DialogDescription className="space-y-3 pt-2">
+                            <p>
+                                {copyDialog?.type === "linkedin"
+                                    ? "We've copied your approved post to the clipboard! LinkedIn doesn't support pre-filling text, so you'll need to manually paste it."
+                                    : "We've copied your image prompt to the clipboard! Since Gemini doesn't support pre-filling the prompt via URL, you'll need to paste it in."}
+                            </p>
+                            <div className="bg-secondary/50 rounded-md p-4 text-sm flex flex-col gap-2 font-mono border text-left">
+                                <div><span className="text-muted-foreground mr-2">1.</span> Click the button below to open the platform.</div>
+                                <div><span className="text-muted-foreground mr-2">2.</span> Focus the text input area.</div>
+                                <div><span className="text-muted-foreground mr-2">3.</span> Press <strong>Ctrl+V</strong> (or Cmd+V) to paste.</div>
+                            </div>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="sm:justify-end mt-4">
+                        <Button
+                            type="button"
+                            onClick={() => {
+                                if (copyDialog) window.open(copyDialog.url, "_blank");
+                                setCopyDialog(null);
+                            }}
+                        >
+                            Open {copyDialog?.type === "linkedin" ? "LinkedIn" : "Gemini"}
+                            <ExternalLink className="ml-2 h-4 w-4" />
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

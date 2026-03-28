@@ -13,4 +13,9 @@ next.user-config.*
 # Common ignores
 node_modules
 .next/
+.turbo/
+.cache/
+playwright-report/
+test-results/
+blob-report/
 .DS_Store

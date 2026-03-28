@@ -50,5 +50,5 @@ def health() -> dict[str, str]:
         "status": "ok",
         "service": "enterprise-content-ai-backend",
         "version": app.version,
-        "model": getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+        "model": getenv("GEMINI_MODEL", "gemini-3.1-flash"),
     }

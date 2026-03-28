@@ -69,6 +69,29 @@ test("golden flow: login -> generate -> approval -> publish -> history", async (
             return;
         }
 
+        if (url.pathname === "/api/generate/stream" && method === "POST") {
+            const sse = [
+                'event: progress\\ndata: {"stage":"init","message":"Initializing generation pipeline"}\\n\\n',
+                'event: progress\\ndata: {"stage":"research","message":"Gathering market context"}\\n\\n',
+                'event: progress\\ndata: {"stage":"writing","message":"Drafting LinkedIn and Twitter content"}\\n\\n',
+                'event: progress\\ndata: {"stage":"compliance","message":"Applying deterministic compliance checks"}\\n\\n',
+                'event: progress\\ndata: {"stage":"visual","message":"Preparing final visual prompt package"}\\n\\n',
+                'event: result\\ndata: {"linkedin_post":"Enterprise teams can scale AI safely with policy-first execution.","twitter_post":"Policy-first AI delivery improves reliability and trust. #AI #Enterprise","image_prompt":"Modern enterprise command center with ethical AI visuals","compliance_status":"APPROVED","compliance_notes":"Compliant"}\\n\\n',
+                'event: done\\ndata: {}\\n\\n',
+            ].join("");
+
+            await route.fulfill({
+                status: 200,
+                headers: {
+                    "Content-Type": "text/event-stream",
+                    "Cache-Control": "no-cache",
+                    Connection: "keep-alive",
+                },
+                body: sse,
+            });
+            return;
+        }
+
         if (url.pathname === "/api/generations" && method === "POST") {
             const payload = request.postDataJSON() as {
                 topic: string;

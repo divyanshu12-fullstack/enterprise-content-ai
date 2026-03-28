@@ -1,21 +1,22 @@
-"use client"
+"use client";
 
-import { Linkedin, Twitter, Globe, MoreHorizontal, Copy, ExternalLink } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
-import {
+import { Linkedin, Twitter, Globe, MoreHorizontal, Copy, ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner"; import { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 
 interface ContentPreviewProps {
-  platform: "linkedin" | "twitter"
-  content: string
-  username?: string
-  timestamp?: string
-  className?: string
+  platform: "linkedin" | "twitter";
+  content: string;
+  username?: string;
+  timestamp?: string;
+  className?: string;
 }
 
 const platformConfig = {
@@ -35,7 +36,7 @@ const platformConfig = {
     bgColor: "bg-foreground/10",
     maxChars: 280,
   },
-}
+};
 
 export function ContentPreview({
   platform,
@@ -44,13 +45,13 @@ export function ContentPreview({
   timestamp = "Just now",
   className,
 }: ContentPreviewProps) {
-  const config = platformConfig[platform]
-  const Icon = config.icon
-  const isOverLimit = config.maxChars && content.length > config.maxChars
+  const config = platformConfig[platform];
+  const Icon = config.icon;
+  const isOverLimit = config.maxChars && content.length > config.maxChars;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(content)
-  }
+    navigator.clipboard.writeText(content);
+  };
 
   return (
     <div
@@ -121,45 +122,72 @@ export function ContentPreview({
         )}
       </div>
     </div>
-  )
+  );
 }
 
 interface ImagePreviewProps {
-  prompt: string
-  className?: string
+  prompt: string;
+  className?: string;
 }
 
 export function ImagePreview({ prompt, className }: ImagePreviewProps) {
-  // Generate Pollinations URL from prompt
-  const encodedPrompt = encodeURIComponent(prompt)
-  const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=600&nologo=true`
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const handleGenerateImage = () => {
+    navigator.clipboard.writeText(prompt);
+    setDialogOpen(true);
+  };
 
   return (
-    <div
-      className={cn(
-        "rounded-xl border border-border bg-card overflow-hidden",
-        className
-      )}
-    >
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <span className="text-sm font-medium text-foreground">Generated Visual</span>
-        <Button variant="ghost" size="sm" className="h-7 text-xs">
-          <ExternalLink className="mr-1.5 h-3 w-3" />
-          Open full size
-        </Button>
+    <>
+      <div
+        className={cn(
+          "rounded-xl border border-border bg-card overflow-hidden",
+          className
+        )}
+      >
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <span className="text-sm font-medium text-foreground">Visual direction</span>
+        </div>
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground mb-2">Image Prompt</p>
+          <p className="text-sm text-foreground line-clamp-3 mb-4">{prompt}</p>
+          <Button variant="default" size="sm" onClick={handleGenerateImage}>
+            <ExternalLink className="mr-1.5 h-3 w-3" />
+            Generate in Gemini
+          </Button>
+        </div>
       </div>
-      <div className="relative aspect-video bg-secondary">
-        <img
-          src={imageUrl}
-          alt="AI-generated content visual"
-          className="h-full w-full object-cover"
-          loading="lazy"
-        />
-      </div>
-      <div className="border-t border-border p-4">
-        <p className="text-xs font-medium text-muted-foreground mb-2">Image Prompt</p>
-        <p className="text-sm text-foreground line-clamp-3">{prompt}</p>
-      </div>
-    </div>
-  )
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ready to Generate Image</DialogTitle>
+            <DialogDescription className="space-y-3 pt-2">
+              <p>
+                We've copied your image prompt to the clipboard! Since Gemini doesn't support pre-filling the prompt via URL, you'll need to paste it in manually.
+              </p>
+              <div className="bg-secondary/50 rounded-md p-4 text-sm flex flex-col gap-2 font-mono border text-left">
+                <div><span className="text-muted-foreground mr-2">1.</span> Click the button below to open Gemini.</div>
+                <div><span className="text-muted-foreground mr-2">2.</span> Focus the prompt input area.</div>
+                <div><span className="text-muted-foreground mr-2">3.</span> Press <strong>Ctrl+V</strong> (or Cmd+V) to paste.</div>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-end mt-4">
+            <Button
+              type="button"
+              onClick={() => {
+                window.open("https://gemini.google.com/", "_blank");
+                setDialogOpen(false);
+              }}
+            >
+              Open Gemini
+              <ExternalLink className="ml-2 h-4 w-4" />
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
 }

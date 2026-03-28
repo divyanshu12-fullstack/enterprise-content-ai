@@ -137,7 +137,7 @@ export function AppSidebar() {
 
   return (
     <>
-      <aside className="app-panel fixed left-0 top-0 z-40 hidden h-screen w-64 flex-col border-r border-sidebar-border bg-sidebar/90 md:flex">
+      <aside className="app-panel fixed left-0 top-0 z-40 hidden h-screen w-64 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar/90 md:flex">
         <div className="flex h-18 flex-col items-start justify-center border-b border-sidebar-border px-6">
           <span className="gradient-text text-sm font-semibold tracking-wide">
             ContentAI
@@ -146,7 +146,7 @@ export function AppSidebar() {
         </div>
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="min-h-0 flex-1 overflow-y-auto">{navLinks}</div>
-          <div className="shrink-0">{statusAndActions}</div>
+          <div className="shrink-0 border-t border-sidebar-border bg-sidebar/95">{statusAndActions}</div>
         </div>
       </aside>
 
@@ -164,7 +164,7 @@ export function AppSidebar() {
           </SheetTrigger>
           <SheetContent
             side="left"
-            className="app-panel w-[85vw] max-w-[320px] border-sidebar-border bg-sidebar/95 p-0"
+            className="app-panel w-[85vw] max-w-[320px] overflow-hidden border-sidebar-border bg-sidebar/95 p-0"
           >
             <div className="flex h-18 flex-col items-start justify-center border-b border-sidebar-border px-6">
               <span className="gradient-text text-sm font-semibold tracking-wide">
@@ -174,7 +174,7 @@ export function AppSidebar() {
             </div>
             <div className="flex h-[calc(100dvh-4rem)] min-h-0 flex-col">
               <div className="min-h-0 flex-1 overflow-y-auto">{navLinks}</div>
-              <div className="shrink-0">{statusAndActions}</div>
+              <div className="shrink-0 border-t border-sidebar-border bg-sidebar/95">{statusAndActions}</div>
             </div>
           </SheetContent>
         </Sheet>

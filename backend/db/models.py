@@ -28,7 +28,7 @@ class UserSettings(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     user_id: uuid.UUID = Field(foreign_key="users.id", unique=True, index=True)
 
-    selected_model: str = Field(default="gemini-2.5-flash", max_length=100)
+    selected_model: str = Field(default="gemini-3.1-flash", max_length=100)
     auto_retry: bool = Field(default=True)
     max_retries: int = Field(default=2, ge=1, le=10)
     include_source_urls: bool = Field(default=True)

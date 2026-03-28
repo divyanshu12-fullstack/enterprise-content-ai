@@ -56,9 +56,12 @@ dist/
 build/
 out/
 .next/
+.turbo/
 .nuxt/
 coverage/
 .nyc_output/
+playwright-report/
+test-results/
 
 # =========================
 # Python
@@ -88,6 +91,9 @@ venv/
 .venv/
 env.bak/
 venv.bak/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # =========================
 # Java / C++ / General Compiled
@@ -98,3 +104,8 @@ venv.bak/
 *.obj
 *.out
 target/
+
+# Local runtime artifacts
+*.db
+*.db-journal
+backend/test_integration.db

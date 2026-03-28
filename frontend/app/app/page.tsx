@@ -27,7 +27,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { createGeneration, generateContent, uploadPolicyFile } from "@/lib/api";
+import { createGeneration, generateContent, generateContentStream, uploadPolicyFile } from "@/lib/api";
+import type { FinalContentOutput } from "@/lib/schemas";
+import axios from "axios";
 
 const audiences = [
     { value: "professionals", label: "Professionals", icon: Briefcase },
@@ -62,14 +64,15 @@ const pipelineStages = [
     { id: "visual", label: "Visual prompt generation", icon: WandSparkles, agent: "Visual Agent" },
 ];
 
-const statusMessages = [
-    "Reading your brief",
-    "Collecting market context",
-    "Writing LinkedIn and Twitter drafts",
-    "Running policy checks",
-    "Composing visual prompt",
-    "Finalizing output",
-];
+const stageIndexById: Record<string, number> = {
+    init: 0,
+    retry: 0,
+    research: 0,
+    writing: 1,
+    compliance: 2,
+    visual: 3,
+    done: 3,
+};
 
 const quickTemplates = [
     "How AI copilots are changing enterprise productivity",
@@ -78,6 +81,42 @@ const quickTemplates = [
 ];
 
 export default function GeneratePage() {
+    const normalizePipelineDetail = (text: string): string => {
+        const raw = text.trim();
+
+        if (raw.includes("RESOURCE_EXHAUSTED") || raw.includes("quota") || raw.includes("rate")) {
+            const retryMatch = raw.match(/retry in\s+([0-9.]+)s/i) || raw.match(/"retryDelay"\s*:\s*"([0-9]+)s"/i);
+            const modelMatch = raw.match(/model[:=]\s*([a-zA-Z0-9._-]+)/i) || raw.match(/"model"\s*:\s*"([^"]+)"/i);
+
+            const retrySeconds = retryMatch?.[1] ? Math.max(1, Math.ceil(Number(retryMatch[1]))) : null;
+            const model = modelMatch?.[1] ?? "configured model";
+
+            if (retrySeconds) {
+                return `Rate limit reached for ${model}. Please retry in about ${retrySeconds}s, switch model, or use a key/project with higher quota.`;
+            }
+            return `Rate limit reached for ${model}. Please wait and retry, switch model, or use a key/project with higher quota.`;
+        }
+
+        return raw;
+    };
+
+    const resolveErrorMessage = (error: unknown): string => {
+        if (axios.isAxiosError(error)) {
+            const detail = error.response?.data?.detail;
+            if (typeof detail === "string") {
+                return normalizePipelineDetail(detail);
+            }
+            if (detail != null) {
+                return normalizePipelineDetail(JSON.stringify(detail));
+            }
+            return normalizePipelineDetail(error.message || "Request failed.");
+        }
+        if (error instanceof Error && error.message.trim()) {
+            return normalizePipelineDetail(error.message);
+        }
+        return "Please check your API key/model settings and try again.";
+    };
+
     const router = useRouter();
     const [topic, setTopic] = useState("");
     const [audience, setAudience] = useState("");
@@ -88,7 +127,7 @@ export default function GeneratePage() {
     const [policyText, setPolicyText] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
     const [currentStage, setCurrentStage] = useState(0);
-    const [currentMessage, setCurrentMessage] = useState(0);
+    const [progressMessage, setProgressMessage] = useState("Reading your brief");
     const [elapsedTime, setElapsedTime] = useState(0);
     const [errors, setErrors] = useState<{ topic?: string; audience?: string; }>({});
 
@@ -135,38 +174,37 @@ export default function GeneratePage() {
 
         setIsGenerating(true);
         setCurrentStage(0);
-        setCurrentMessage(0);
+        setProgressMessage("Reading your brief");
         setElapsedTime(0);
 
         const timerInterval = setInterval(() => {
             setElapsedTime((prev) => prev + 1);
         }, 1000);
 
-        const stageInterval = setInterval(() => {
-            setCurrentStage((prev) => {
-                if (prev >= pipelineStages.length - 1) {
-                    clearInterval(stageInterval);
-                    return prev;
-                }
-                return prev + 1;
-            });
-        }, 2600);
-
-        const messageInterval = setInterval(() => {
-            setCurrentMessage((prev) => (prev + 1) % statusMessages.length);
-        }, 1400);
-
         try {
             const started = Date.now();
 
-            const output = await generateContent({
+            const payload = {
                 topic,
                 audience,
                 content_type: contentType || undefined,
                 tone: tone || undefined,
                 additional_context: additionalContext || undefined,
                 policy_text: policyText || undefined,
-            });
+            };
+
+            let output: FinalContentOutput;
+            try {
+                output = await generateContentStream(payload, (event) => {
+                    setProgressMessage(event.message);
+                    const stageIdx = stageIndexById[event.stage];
+                    if (typeof stageIdx === "number") {
+                        setCurrentStage(stageIdx);
+                    }
+                });
+            } catch {
+                output = await generateContent(payload);
+            }
 
             const record = await createGeneration({
                 topic,
@@ -187,14 +225,12 @@ export default function GeneratePage() {
                 description: `Completed in ${Math.max(1, Math.round((Date.now() - started) / 1000))} seconds`,
             });
             router.push(`/app/approval?id=${record.id}`);
-        } catch {
+        } catch (error: unknown) {
             toast.error("Generation failed", {
-                description: "Please make sure you are logged in and try again.",
+                description: resolveErrorMessage(error),
             });
         } finally {
             clearInterval(timerInterval);
-            clearInterval(stageInterval);
-            clearInterval(messageInterval);
             setIsGenerating(false);
         }
     };
@@ -402,7 +438,7 @@ export default function GeneratePage() {
                             <div className="flex items-center justify-between gap-3">
                                 <div>
                                     <CardTitle className="text-xl">Generating content package</CardTitle>
-                                    <CardDescription>{statusMessages[currentMessage]}</CardDescription>
+                                    <CardDescription>{progressMessage}</CardDescription>
                                 </div>
                                 <div className="rounded-md border border-border bg-card px-3 py-1 text-sm text-muted-foreground">{elapsedTime}s</div>
                             </div>

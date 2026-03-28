@@ -26,13 +26,14 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { deleteGeneration, listGenerations } from "@/lib/api";
-import type { Generation } from "@/lib/schemas";
+import { deleteGeneration, getGenerationMetrics, listGenerations } from "@/lib/api";
+import type { Generation, GenerationMetrics } from "@/lib/schemas";
 
 export default function HistoryPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("all");
     const [generations, setGenerations] = useState<Generation[]>([]);
+    const [metrics, setMetrics] = useState<GenerationMetrics | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -40,14 +41,18 @@ export default function HistoryPage() {
         const run = async () => {
             try {
                 setLoading(true);
-                const response = await listGenerations({
-                    search: searchQuery || undefined,
-                    status: statusFilter === "all" ? undefined : statusFilter,
-                    limit: 100,
-                    offset: 0,
-                });
+                const [response, metricResponse] = await Promise.all([
+                    listGenerations({
+                        search: searchQuery || undefined,
+                        status: statusFilter === "all" ? undefined : statusFilter,
+                        limit: 100,
+                        offset: 0,
+                    }),
+                    getGenerationMetrics(),
+                ]);
                 if (active) {
                     setGenerations(response.items);
+                    setMetrics(metricResponse);
                 }
             } catch {
                 toast.error("Failed to load history", {
@@ -69,8 +74,15 @@ export default function HistoryPage() {
     const stats = useMemo(() => {
         const approved = generations.filter((g) => g.compliance_status === "APPROVED").length;
         const rejected = generations.filter((g) => g.compliance_status === "REJECTED").length;
-        return { total: generations.length, approved, rejected };
-    }, [generations]);
+        return {
+            total: metrics?.total_runs ?? generations.length,
+            approved: metrics?.approved_runs ?? approved,
+            rejected: metrics?.rejected_runs ?? rejected,
+            passRate: metrics?.pass_rate ?? (generations.length ? (approved / generations.length) * 100 : 0),
+            rejectionRate: metrics?.rejection_rate ?? (generations.length ? (rejected / generations.length) * 100 : 0),
+            medianDurationMs: metrics?.median_duration_ms ?? null,
+        };
+    }, [generations, metrics]);
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
@@ -92,6 +104,8 @@ export default function HistoryPage() {
         try {
             await deleteGeneration(id);
             setGenerations((prev) => prev.filter((g) => g.id !== id));
+            const updatedMetrics = await getGenerationMetrics();
+            setMetrics(updatedMetrics);
             toast.success("Generation deleted");
         } catch {
             toast.error("Delete failed");
@@ -137,23 +151,31 @@ export default function HistoryPage() {
                         </Select>
                     </div>
 
-                    <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         <Card className="app-panel border-border/80">
                             <CardContent className="p-4">
-                                <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Total</p>
+                                <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Total runs</p>
                                 <p className="mt-1 text-2xl font-semibold">{stats.total}</p>
                             </CardContent>
                         </Card>
                         <Card className="app-panel border-border/80">
                             <CardContent className="p-4">
-                                <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Approved</p>
-                                <p className="mt-1 text-2xl font-semibold text-success">{stats.approved}</p>
+                                <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Pass rate</p>
+                                <p className="mt-1 text-2xl font-semibold text-success">{stats.passRate.toFixed(1)}%</p>
                             </CardContent>
                         </Card>
                         <Card className="app-panel border-border/80">
                             <CardContent className="p-4">
-                                <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Rejected</p>
-                                <p className="mt-1 text-2xl font-semibold text-destructive">{stats.rejected}</p>
+                                <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Rejection rate</p>
+                                <p className="mt-1 text-2xl font-semibold text-destructive">{stats.rejectionRate.toFixed(1)}%</p>
+                            </CardContent>
+                        </Card>
+                        <Card className="app-panel border-border/80">
+                            <CardContent className="p-4">
+                                <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Median runtime</p>
+                                <p className="mt-1 text-2xl font-semibold">
+                                    {stats.medianDurationMs == null ? "-" : `${(stats.medianDurationMs / 1000).toFixed(1)}s`}
+                                </p>
                             </CardContent>
                         </Card>
                     </div>

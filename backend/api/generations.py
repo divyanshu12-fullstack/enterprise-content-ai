@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timezone
+from statistics import median
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -59,6 +60,15 @@ class GenerationActionRequest(BaseModel):
     notes: str | None = None
 
 
+class GenerationMetricsResponse(BaseModel):
+    total_runs: int
+    approved_runs: int
+    rejected_runs: int
+    pass_rate: float
+    rejection_rate: float
+    median_duration_ms: float | None
+
+
 
 def _to_response(record: Generation) -> GenerationResponse:
     return GenerationResponse(
@@ -81,6 +91,15 @@ def _to_response(record: Generation) -> GenerationResponse:
     )
 
 
+def _terminal_status(status: str) -> bool:
+    return status.upper() in {"COMPLETED", "SUCCESS", "FAILED", "APPROVED", "REJECTED", "PUBLISHED"}
+
+
+def _duration_ms(created_at: datetime, completed_at: datetime) -> int:
+    elapsed = (completed_at - created_at).total_seconds() * 1000
+    return int(max(0, round(elapsed)))
+
+
 @router.post("", response_model=GenerationResponse)
 def create_generation(
     payload: GenerationCreateRequest,
@@ -88,8 +107,10 @@ def create_generation(
     session: Session = Depends(get_session),
 ) -> GenerationResponse:
     record = Generation(user_id=current_user.id, **payload.model_dump())
-    if record.status.upper() in {"COMPLETED", "SUCCESS", "FAILED"}:
+    if _terminal_status(record.status):
         record.completed_at = datetime.now(timezone.utc)
+    if record.duration_ms is None and record.completed_at is not None:
+        record.duration_ms = _duration_ms(record.created_at, record.completed_at)
 
     session.add(record)
     session.commit()
@@ -117,6 +138,32 @@ def list_generations(
     rows = session.exec(ordered.offset(offset).limit(limit)).all()
     total = session.exec(select(func.count()).select_from(statement.subquery())).one()
     return GenerationListResponse(items=[_to_response(r) for r in rows], total=int(total))
+
+
+@router.get("/metrics", response_model=GenerationMetricsResponse)
+def generation_metrics(
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> GenerationMetricsResponse:
+    rows = session.exec(select(Generation).where(Generation.user_id == current_user.id)).all()
+
+    total_runs = len(rows)
+    approved_runs = sum(1 for r in rows if r.compliance_status.upper() == "APPROVED")
+    rejected_runs = sum(1 for r in rows if r.compliance_status.upper() == "REJECTED")
+    durations = [r.duration_ms for r in rows if isinstance(r.duration_ms, int) and r.duration_ms >= 0]
+
+    pass_rate = (approved_runs / total_runs) * 100 if total_runs else 0.0
+    rejection_rate = (rejected_runs / total_runs) * 100 if total_runs else 0.0
+    median_duration_ms = float(median(durations)) if durations else None
+
+    return GenerationMetricsResponse(
+        total_runs=total_runs,
+        approved_runs=approved_runs,
+        rejected_runs=rejected_runs,
+        pass_rate=round(pass_rate, 2),
+        rejection_rate=round(rejection_rate, 2),
+        median_duration_ms=median_duration_ms,
+    )
 
 
 @router.get("/{generation_id}", response_model=GenerationResponse)

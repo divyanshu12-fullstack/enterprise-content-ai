@@ -27,7 +27,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { createGeneration, generateContent } from "@/lib/api";
+import { createGeneration, generateContent, uploadPolicyFile } from "@/lib/api";
 
 const audiences = [
     { value: "professionals", label: "Professionals", icon: Briefcase },
@@ -85,6 +85,7 @@ export default function GeneratePage() {
     const [tone, setTone] = useState("");
     const [additionalContext, setAdditionalContext] = useState("");
     const [policyFile, setPolicyFile] = useState<File | null>(null);
+    const [policyText, setPolicyText] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
     const [currentStage, setCurrentStage] = useState(0);
     const [currentMessage, setCurrentMessage] = useState(0);
@@ -96,7 +97,7 @@ export default function GeneratePage() {
         return ((currentStage + 1) / pipelineStages.length) * 100;
     }, [isGenerating, currentStage]);
 
-    const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
@@ -105,8 +106,20 @@ export default function GeneratePage() {
             return;
         }
 
-        setPolicyFile(file);
-        toast.success("Policy document attached", { description: file.name });
+        try {
+            const extracted = await uploadPolicyFile(file);
+            setPolicyFile(file);
+            setPolicyText(extracted.policy_text);
+            toast.success("Policy document parsed", {
+                description: `${file.name} (${extracted.char_count} chars)` + (extracted.truncated ? " - truncated" : ""),
+            });
+        } catch {
+            setPolicyFile(null);
+            setPolicyText("");
+            toast.error("Policy parsing failed", {
+                description: "Use a readable TXT, PDF, or DOCX file.",
+            });
+        }
     }, []);
 
     const validateForm = () => {
@@ -145,16 +158,14 @@ export default function GeneratePage() {
 
         try {
             const started = Date.now();
-            const contextWithPolicy = policyFile
-                ? `${additionalContext}\n\nPolicy file attached: ${policyFile.name}`.trim()
-                : additionalContext;
 
             const output = await generateContent({
                 topic,
                 audience,
                 content_type: contentType || undefined,
                 tone: tone || undefined,
-                additional_context: contextWithPolicy || undefined,
+                additional_context: additionalContext || undefined,
+                policy_text: policyText || undefined,
             });
 
             const record = await createGeneration({
@@ -162,7 +173,7 @@ export default function GeneratePage() {
                 audience,
                 content_type: contentType || undefined,
                 tone: tone || undefined,
-                additional_context: contextWithPolicy || undefined,
+                additional_context: additionalContext || undefined,
                 linkedin_post: output.linkedin_post,
                 twitter_post: output.twitter_post,
                 image_prompt: output.image_prompt,
@@ -304,7 +315,14 @@ export default function GeneratePage() {
                                             <p className="text-xs text-muted-foreground">Attach brand/compliance files for stricter review</p>
                                         </div>
                                         {policyFile && (
-                                            <Button variant="ghost" size="sm" onClick={() => setPolicyFile(null)}>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => {
+                                                    setPolicyFile(null);
+                                                    setPolicyText("");
+                                                }}
+                                            >
                                                 <X className="h-4 w-4" />
                                             </Button>
                                         )}

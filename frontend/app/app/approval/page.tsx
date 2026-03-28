@@ -199,7 +199,7 @@ export default function ApprovalPage() {
                                 <div className="flex items-center justify-between gap-3">
                                     <CardTitle className="text-xl">Channel copy</CardTitle>
                                     <Tabs value={activeTab} onValueChange={setActiveTab}>
-                                        <TabsList className="grid w-[220px] grid-cols-2 border border-border bg-card">
+                                        <TabsList className="grid w-55 grid-cols-2 border border-border bg-card">
                                             <TabsTrigger value="linkedin" className="gap-1">
                                                 <Linkedin className="h-4 w-4" />
                                                 LinkedIn
@@ -268,7 +268,7 @@ export default function ApprovalPage() {
                                 <CardDescription>Auto-generated preview and prompt</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="relative aspect-[4/3] overflow-hidden rounded-lg border border-border bg-card">
+                                <div className="relative aspect-4/3 overflow-hidden rounded-lg border border-border bg-card">
                                     <Image
                                         src={getPollinationsUrl(result.image_prompt)}
                                         alt="Generated visual"

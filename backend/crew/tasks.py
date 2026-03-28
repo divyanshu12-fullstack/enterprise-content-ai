@@ -1,17 +1,47 @@
 from crewai import Task
 
 
-def build_tasks(agents: dict) -> list[Task]:
+def build_tasks(
+    agents: dict,
+    content_type: str | None = None,
+    tone: str | None = None,
+    additional_context: str | None = None,
+    policy_text: str | None = None,
+    blocked_words: list[str] | None = None,
+    strict_compliance: bool = True,
+    include_source_urls: bool = True,
+    auto_generate_image: bool = True,
+) -> list[Task]:
     researcher = agents["researcher"]
     writer = agents["writer"]
     brand_governance = agents["brand_governance"]
     visual = agents["visual"]
 
+    content_type_instruction = content_type or "not specified"
+    tone_instruction = tone or "professional"
+    additional_context_instruction = additional_context or "none"
+    policy_text_instruction = policy_text or "none"
+
+    banned_terms = ["guarantee", "promise", "investment advice"]
+    for word in blocked_words or []:
+        normalized = word.strip()
+        if normalized and normalized.lower() not in {w.lower() for w in banned_terms}:
+            banned_terms.append(normalized)
+    banned_terms_text = ", ".join(f"'{word}'" for word in banned_terms)
+
+    source_instruction = (
+        "Return concise bullet points with citations/URLs."
+        if include_source_urls
+        else "Return concise bullet points. Source URLs are optional for this run."
+    )
+
+    strict_tone_rule = "- Reject if tone is not professional.\n" if strict_compliance else ""
+
     research_task = Task(
         description=(
             "Research the topic '{topic}' for audience '{audience}'. Find timely facts, "
             "data points, and trends from reliable web sources.\n"
-            "Return concise bullet points with citations/URLs."
+            f"{source_instruction}"
         ),
         expected_output=(
             "A concise research brief with bullets and source URLs that are safe to cite."
@@ -24,7 +54,10 @@ def build_tasks(agents: dict) -> list[Task]:
             "Using the research brief, draft two outputs:\n"
             "1) A 3-paragraph professional LinkedIn post with one clear CTA\n"
             "2) A 280-character Twitter post (single post, not multi-post thread).\n"
-            "Keep tone professional and actionable. Avoid hype language."
+            "Keep tone professional and actionable. Avoid hype language.\n"
+            f"Requested content type: {content_type_instruction}.\n"
+            f"Requested tone: {tone_instruction}.\n"
+            f"Additional context from user: {additional_context_instruction}."
         ),
         expected_output=(
             "A response containing clearly labeled LinkedIn and Twitter drafts."
@@ -36,10 +69,12 @@ def build_tasks(agents: dict) -> list[Task]:
     compliance_task = Task(
         description=(
             "Review the drafts against these hard rules:\n"
-            "- Reject if content includes banned terms: 'guarantee', 'promise', "
-            "or 'investment advice'.\n"
-            "- Reject if tone is not professional.\n"
+            f"- Reject if content includes banned terms: {banned_terms_text}.\n"
+            f"{strict_tone_rule}"
             "- Reject if Twitter post is longer than 280 characters.\n"
+            f"- Also verify the output aligns with requested content type: {content_type_instruction}.\n"
+            f"- Also verify the output aligns with requested tone: {tone_instruction}.\n"
+            f"- Apply this policy text when making a compliance decision: {policy_text_instruction}.\n"
             "Output a JSON object with keys: linkedin_post, twitter_post, "
             "compliance_status, compliance_notes.\n"
             "compliance_status MUST be APPROVED or REJECTED.\n"
@@ -57,6 +92,8 @@ def build_tasks(agents: dict) -> list[Task]:
             "Read the compliance-reviewed content and craft a highly descriptive, "
             "comma-separated image prompt with composition guidance.\n"
             "Avoid text-heavy visuals.\n"
+            f"Auto image generation enabled: {'yes' if auto_generate_image else 'no'}. "
+            "If disabled, set image_prompt to 'Image generation disabled by settings.' and keep all other fields unchanged.\n"
             "Return a strict JSON object with EXACT keys:\n"
             "linkedin_post, twitter_post, image_prompt, compliance_status, compliance_notes\n"
             "Do not include markdown fences."

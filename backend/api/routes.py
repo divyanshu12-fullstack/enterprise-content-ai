@@ -1,9 +1,19 @@
-from fastapi import APIRouter, HTTPException
+from __future__ import annotations
+
+import os
+
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from pydantic import Field
 from pydantic import ValidationError
+
+from api.deps import get_current_user_optional
 from crew.crew_logic import run_content_pipeline
 from crew.schemas import FinalContentOutput
+from db.models import User, UserSettings
+from db.security import decrypt_secret
+from db.session import get_session
+from sqlmodel import Session, select
 
 router = APIRouter(prefix="/api", tags=["content"])
 
@@ -14,6 +24,7 @@ class GenerateRequest(BaseModel):
     content_type: str | None = Field(default=None, max_length=80)
     tone: str | None = Field(default=None, max_length=80)
     additional_context: str | None = None
+    policy_text: str | None = None
 
 
 class ErrorResponse(BaseModel):
@@ -23,6 +34,57 @@ class ErrorResponse(BaseModel):
 
 class ErrorEnvelope(BaseModel):
     detail: ErrorResponse
+
+
+class RuntimeSettings(BaseModel):
+    model_name: str | None = None
+    api_key: str | None = None
+    auto_retry: bool = True
+    max_retries: int = 2
+    include_source_urls: bool = True
+    auto_generate_image: bool = True
+    strict_compliance: bool = True
+    blocked_words: list[str] = Field(default_factory=list)
+
+
+def _resolve_runtime_settings(
+    session: Session | None,
+    current_user: User | None,
+) -> RuntimeSettings:
+    defaults = RuntimeSettings(
+        model_name=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+        api_key=os.getenv("GEMINI_API_KEY"),
+        auto_retry=True,
+        max_retries=2,
+        include_source_urls=True,
+        auto_generate_image=True,
+        strict_compliance=True,
+        blocked_words=[],
+    )
+    if not isinstance(session, Session) or not isinstance(current_user, User):
+        return defaults
+
+    settings = session.exec(select(UserSettings).where(UserSettings.user_id == current_user.id)).first()
+    if not settings:
+        return defaults
+
+    api_key = defaults.api_key
+    if settings.encrypted_api_key:
+        try:
+            api_key = decrypt_secret(settings.encrypted_api_key)
+        except Exception:
+            api_key = defaults.api_key
+
+    return RuntimeSettings(
+        model_name=settings.selected_model or defaults.model_name,
+        api_key=api_key,
+        auto_retry=settings.auto_retry,
+        max_retries=settings.max_retries,
+        include_source_urls=settings.include_source_urls,
+        auto_generate_image=settings.auto_generate_image,
+        strict_compliance=settings.strict_compliance,
+        blocked_words=settings.custom_blocked_words or [],
+    )
 
 
 @router.post(
@@ -35,9 +97,27 @@ class ErrorEnvelope(BaseModel):
 )
 def generate_content(
     payload: GenerateRequest,
+    current_user: User | None = Depends(get_current_user_optional),
+    session: Session = Depends(get_session),
 ) -> FinalContentOutput:
     try:
-        result = run_content_pipeline(topic=payload.topic, audience=payload.audience)
+        runtime = _resolve_runtime_settings(session=session, current_user=current_user)
+        result = run_content_pipeline(
+            topic=payload.topic,
+            audience=payload.audience,
+            content_type=payload.content_type,
+            tone=payload.tone,
+            additional_context=payload.additional_context,
+            policy_text=payload.policy_text,
+            model_name=runtime.model_name,
+            api_key=runtime.api_key,
+            auto_retry=runtime.auto_retry,
+            max_retries=runtime.max_retries,
+            include_source_urls=runtime.include_source_urls,
+            auto_generate_image=runtime.auto_generate_image,
+            strict_compliance=runtime.strict_compliance,
+            blocked_words=runtime.blocked_words,
+        )
         return result
     except ValidationError as exc:
         raise HTTPException(

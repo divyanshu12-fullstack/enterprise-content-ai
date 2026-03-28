@@ -5,17 +5,22 @@ from crewai import Agent, LLM
 from crew.tools import duckduckgo_search_tool
 
 
-def _build_llm() -> LLM:
-    api_key = os.getenv("GEMINI_API_KEY")
+def _build_llm(
+    model_name: str | None = None,
+    api_key: str | None = None,
+    temperature: float | None = None,
+) -> LLM:
+    api_key = api_key or os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise ValueError(
             "GEMINI_API_KEY is not set. Add it to your environment before running the crew."
         )
 
-    model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    model_name = model_name or os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     if not model_name.startswith("gemini/"):
         model_name = f"gemini/{model_name}"
-    temperature = float(os.getenv("GEMINI_TEMPERATURE", "0.2"))
+    if temperature is None:
+        temperature = float(os.getenv("GEMINI_TEMPERATURE", "0.2"))
 
     print(f"[INIT] Gemini model configured: {model_name}")
     return LLM(
@@ -25,8 +30,12 @@ def _build_llm() -> LLM:
     )
 
 
-def build_agents() -> dict[str, Agent]:
-    llm = _build_llm()
+def build_agents(
+    model_name: str | None = None,
+    api_key: str | None = None,
+    temperature: float | None = None,
+) -> dict[str, Agent]:
+    llm = _build_llm(model_name=model_name, api_key=api_key, temperature=temperature)
 
     researcher = Agent(
         role="Senior Market Researcher",

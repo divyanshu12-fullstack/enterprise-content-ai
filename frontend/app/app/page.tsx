@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import {
     ArrowRight,
-    Bot,
     Briefcase,
     Building2,
     FileCheck,
@@ -18,6 +18,14 @@ import {
     Users,
     WandSparkles,
     X,
+    CheckCircle2,
+    CloudUpload,
+    Circle,
+    ChevronRight,
+    Sparkles,
+    Lock,
+    AlertTriangle,
+    Info
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -27,6 +35,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { createGeneration, generateContent, generateContentStream, uploadPolicyFile } from "@/lib/api";
 import type { FinalContentOutput } from "@/lib/schemas";
 import axios from "axios";
@@ -129,12 +138,30 @@ export default function GeneratePage() {
     const [currentStage, setCurrentStage] = useState(0);
     const [progressMessage, setProgressMessage] = useState("Reading your brief");
     const [elapsedTime, setElapsedTime] = useState(0);
-    const [errors, setErrors] = useState<{ topic?: string; audience?: string; }>({});
+    const [errors, setErrors] = useState<{ topic?: string; audience?: string; contentType?: string; tone?: string; }>({});
+    const [generationError, setGenerationError] = useState<string | null>(null);
+
+    const topicRef = useRef<HTMLTextAreaElement>(null);
 
     const progress = useMemo(() => {
         if (!isGenerating) return 0;
         return ((currentStage + 1) / pipelineStages.length) * 100;
     }, [isGenerating, currentStage]);
+
+    const readinessScore = useMemo(() => {
+        let score = 0;
+        if (topic.trim().length > 0) score += 40;
+        if (audience) score += 30;
+        if (contentType) score += 15;
+        if (tone) score += 15;
+        return score;
+    }, [topic, audience, contentType, tone]);
+
+    const formatTime = (seconds: number) => {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m}:${s.toString().padStart(2, "0")}`;
+    };
 
     const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -162,9 +189,11 @@ export default function GeneratePage() {
     }, []);
 
     const validateForm = () => {
-        const newErrors: { topic?: string; audience?: string; } = {};
+        const newErrors: { topic?: string; audience?: string; contentType?: string; tone?: string; } = {};
         if (!topic.trim()) newErrors.topic = "Topic is required";
         if (!audience) newErrors.audience = "Please select an audience";
+        if (!contentType) newErrors.contentType = "Select a format to guide the writer agent";
+        if (!tone) newErrors.tone = "Select a tone";
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -176,6 +205,7 @@ export default function GeneratePage() {
         setCurrentStage(0);
         setProgressMessage("Reading your brief");
         setElapsedTime(0);
+        setGenerationError(null);
 
         const timerInterval = setInterval(() => {
             setElapsedTime((prev) => prev + 1);
@@ -226,56 +256,262 @@ export default function GeneratePage() {
             });
             router.push(`/app/approval?id=${record.id}`);
         } catch (error: unknown) {
+            const errorMsg = resolveErrorMessage(error);
+            setGenerationError(errorMsg);
+
+            if (typeof window !== "undefined") {
+                window.localStorage.setItem("contentai_last_error", JSON.stringify({
+                    message: errorMsg,
+                    timestamp: new Date().toISOString()
+                }));
+            }
+
             toast.error("Generation failed", {
-                description: resolveErrorMessage(error),
+                description: errorMsg,
             });
+            setIsGenerating(false);
         } finally {
             clearInterval(timerInterval);
-            setIsGenerating(false);
         }
+    };
+
+    const renderRightPanel = () => {
+        return (
+            <div className="space-y-6">
+                {isGenerating ? (
+                    <Card className="app-panel border-primary/30 shadow-2xl shadow-primary/5 relative overflow-hidden">
+                        <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-transparent via-primary/50 to-transparent animate-[shimmer_2s_infinite]" />
+                        <CardHeader className="space-y-4 pb-4">
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <CardTitle className="text-xl">Generating Package</CardTitle>
+                                    <CardDescription className="mt-1.5">{progressMessage}</CardDescription>
+                                </div>
+                                <div className="rounded-md border border-border bg-secondary/50 px-3 py-1.5 text-sm font-mono text-muted-foreground flex flex-col items-end">
+                                    <span className={cn("text-foreground", isGenerating && "text-primary animate-pulse")}>{formatTime(elapsedTime)}</span>
+                                    <span className="text-[10px] opacity-70">/ 00:31</span>
+                                </div>
+                            </div>
+                            <div className="flex gap-1 h-2 w-full">
+                                {pipelineStages.map((_, idx) => {
+                                    const done = idx < currentStage;
+                                    const active = idx === currentStage;
+                                    return (
+                                        <div key={idx} className="h-full flex-1 overflow-hidden rounded-full bg-secondary">
+                                            <div
+                                                className={cn("h-full rounded-full transition-all duration-500", done ? "bg-success w-full" : active ? "bg-primary w-full animate-pulse" : "w-0")}
+                                            />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            <AnimatePresence mode="popLayout">
+                                {pipelineStages.map((stage, idx) => {
+                                    const done = idx < currentStage;
+                                    const active = idx === currentStage;
+
+                                    return (
+                                        <motion.div
+                                            key={stage.id}
+                                            layout
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className={cn(
+                                                "flex items-center gap-3 rounded-xl border px-4 py-3 transition-colors duration-300",
+                                                done && "border-success/30 bg-success/5 text-success",
+                                                active && "border-primary/50 bg-primary/10 text-foreground shadow-sm",
+                                                !done && !active && "border-border bg-card/40 text-muted-foreground opacity-60"
+                                            )}
+                                        >
+                                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-background/50 shadow-sm">
+                                                {done ? (
+                                                    <CheckCircle2 className="h-5 w-5 text-success" />
+                                                ) : active ? (
+                                                    <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                                                ) : (
+                                                    <Lock className="h-4 w-4 opacity-50" />
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className={cn("text-sm font-medium truncate", done && "text-success", active && "text-foreground")}>{stage.agent}</p>
+                                                <p className="text-xs opacity-80 truncate">{stage.label}</p>
+                                            </div>
+                                            {active && (
+                                                <span className="flex h-2 w-2 rounded-full bg-primary animate-ping" />
+                                            )}
+                                        </motion.div>
+                                    );
+                                })}
+                            </AnimatePresence>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <>
+                        <Card className="app-panel border-border/80">
+                            <CardHeader>
+                                <CardTitle className="text-base">Pipeline</CardTitle>
+                                <CardDescription>Four agents produce a complete package.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                                {pipelineStages.map((stage, idx) => (
+                                    <div key={stage.id} className="group relative flex items-center justify-between rounded-lg border border-transparent border-l-[3px] border-l-muted-foreground bg-card px-3 py-2.5 transition-colors duration-150 hover:border-l-primary hover:bg-secondary/40">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-secondary shrink-0">
+                                                <stage.icon className="h-4 w-4 text-foreground" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="truncate text-sm font-medium">{stage.agent}</p>
+                                                <p className="truncate text-xs text-muted-foreground">{stage.label}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3 shrink-0">
+                                            <span className="text-xs font-mono text-muted-foreground opacity-70 group-hover:opacity-100 transition-opacity">
+                                                ~{stage.id === 'research' ? '6s' : stage.id === 'writing' ? '12s' : stage.id === 'compliance' ? '8s' : '5s'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </CardContent>
+                        </Card>
+
+                        <div className="flex items-center gap-3 px-1 py-1 overflow-hidden">
+                            <div className="h-px flex-1 bg-border/60" />
+                            <span className="shrink-0 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Or start from scratch</span>
+                            <div className="h-px flex-1 bg-border/60" />
+                        </div>
+
+                        <Card className="app-panel border-border/80">
+                            <CardHeader>
+                                <CardTitle className="text-base">Quick starts</CardTitle>
+                                <CardDescription>Use one of these briefs and edit as needed.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                                {quickTemplates.map((template) => (
+                                    <button
+                                        key={template}
+                                        type="button"
+                                        onClick={(e) => {
+                                            const btn = e.currentTarget;
+                                            btn.classList.add("bg-primary/10", "border-primary/30");
+                                            setTimeout(() => btn.classList.remove("bg-primary/10", "border-primary/30"), 300);
+                                            setTopic(template);
+                                            if (typeof window !== "undefined") {
+                                                const event = new CustomEvent("contentai_topic_change", { detail: { hasTopic: true } });
+                                                window.dispatchEvent(event);
+                                            }
+                                        }}
+                                        className="group flex w-full items-start gap-3 rounded-lg border border-border bg-card px-3 py-2.5 text-left text-sm text-muted-foreground transition-all duration-200 hover:border-foreground/30 hover:text-foreground"
+                                    >
+                                        <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary/70 transition-colors group-hover:text-primary" />
+                                        <span>{template}</span>
+                                    </button>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    </>
+                )}
+            </div>
+        );
     };
 
     return (
         <div className="min-h-screen bg-transparent">
             <header className="app-header-glass sticky top-0 z-30 border-b border-border/80">
-                <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-4 py-3 pl-14 md:h-16 md:flex-nowrap md:px-8 md:py-0 md:pl-8">
+                <div className="flex min-h-20 flex-wrap items-center justify-between gap-3 px-4 py-5 pl-14 md:min-h-24 md:flex-nowrap md:px-6 md:py-6 md:pl-6">
                     <div>
                         <h1 className="text-lg font-semibold tracking-tight md:text-xl">Generate Content</h1>
-                        <p className="text-sm text-muted-foreground">Create approved social copy in one guided workflow</p>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                            <span className="text-foreground">Brief</span>
+                            <ChevronRight className="h-3.5 w-3.5" />
+                            <span>Generate</span>
+                            <ChevronRight className="h-3.5 w-3.5" />
+                            <span>Review</span>
+                            <ChevronRight className="h-3.5 w-3.5" />
+                            <span>Publish</span>
+                        </p>
                     </div>
-                    <Badge variant="outline" className="border-border bg-card/70 text-muted-foreground">
-                        Multi-Agent Pipeline
-                    </Badge>
+                    <div className="flex items-center gap-3">
+                        <Sheet>
+                            <SheetTrigger asChild>
+                                <Button variant="outline" size="sm" className="xl:hidden h-8 gap-2 bg-secondary/20">
+                                    <Info className="h-4 w-4" />
+                                    Pipeline info
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent side="right" className="w-75 sm:w-100 overflow-y-auto pt-10">
+                                {renderRightPanel()}
+                            </SheetContent>
+                        </Sheet>
+                        <Badge variant="outline" className="border-success/30 bg-success/10 text-success gap-1.5 px-2.5 py-1">
+                            <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
+                            Pipeline Ready
+                        </Badge>
+                    </div>
                 </div>
             </header>
 
-            <div className="px-4 py-6 md:px-8 md:py-8">
-                {!isGenerating ? (
-                    <div className="mx-auto grid w-full max-w-7xl gap-6 xl:grid-cols-[1.8fr_1fr]">
+            <div className="px-4 py-6 md:px-6 md:py-8 lg:pb-16 max-md:pb-24">
+                <style dangerouslySetInnerHTML={{
+                    __html: `
+                    @keyframes hue-shift {
+                        0% { background-position: 0% 50%; }
+                        50% { background-position: 100% 50%; }
+                        100% { background-position: 0% 50%; }
+                    }
+                    .generating-bg {
+                        background: linear-gradient(-45deg, rgba(var(--primary), 0.05), rgba(var(--primary), 0.02), rgba(var(--primary), 0.06), rgba(var(--primary), 0.03));
+                        background-size: 400% 400%;
+                        animation: hue-shift 8s ease infinite;
+                    }
+                `}} />
+
+                <div className={cn("mx-auto grid w-full max-w-[1400px] gap-6", !isGenerating && "xl:grid-cols-[1.8fr_1fr]", isGenerating && "xl:grid-cols-[1.8fr_1.8fr]")}>
+                    <motion.div
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className={cn("transition-all duration-500", isGenerating && "opacity-60 blur-sm pointer-events-none grayscale select-none")}
+                    >
                         <Card className="app-panel border-border/80">
                             <CardHeader className="space-y-2">
-                                <CardTitle className="text-xl">Campaign Brief</CardTitle>
+                                <div className="flex flex-col gap-1.5">
+                                    <span className="font-mono text-xs font-medium tracking-wider text-muted-foreground">01</span>
+                                    <CardTitle className="text-xl">Campaign Brief</CardTitle>
+                                </div>
                                 <CardDescription>Define the brief once. The system handles drafting, policy validation, and packaging.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <div className="space-y-2">
                                     <Label htmlFor="topic">Topic or narrative</Label>
-                                    <Textarea
-                                        id="topic"
-                                        value={topic}
-                                        onChange={(e) => {
-                                            setTopic(e.target.value);
-                                            if (errors.topic) setErrors({ ...errors, topic: undefined });
-                                        }}
-                                        placeholder="Example: Practical lessons from deploying AI copilots in enterprise support teams"
-                                        className={cn("min-h-28 resize-none border-border bg-input", errors.topic && "border-destructive")}
-                                    />
+                                    <div className="relative">
+                                        <Textarea
+                                            id="topic"
+                                            value={topic}
+                                            onChange={(e) => {
+                                                const newTopic = e.target.value;
+                                                setTopic(newTopic);
+                                                if (typeof window !== "undefined") {
+                                                    const event = new CustomEvent("contentai_topic_change", { detail: { hasTopic: newTopic.trim().length > 0 } });
+                                                    window.dispatchEvent(event);
+                                                }
+                                                if (errors.topic) setErrors({ ...errors, topic: undefined });
+                                            }}
+                                            placeholder="Example: Practical lessons from deploying AI copilots in enterprise support teams"
+                                            className={cn("min-h-28 resize-none border-border bg-input pb-8 transition-colors", errors.topic && "border-destructive")}
+                                            style={{ fieldSizing: "content" } as any}
+                                        />
+                                        <span className={cn("absolute bottom-2 right-3 text-xs", topic.length >= 280 && topic.length <= 300 ? "text-warning" : topic.length > 300 ? "text-destructive" : "text-muted-foreground")}>
+                                            {topic.length} / 300
+                                        </span>
+                                    </div>
                                     {errors.topic && <p className="text-sm text-destructive">{errors.topic}</p>}
                                 </div>
 
                                 <div className="space-y-2">
                                     <Label>Target audience</Label>
-                                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                                    <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
                                         {audiences.map((aud) => (
                                             <button
                                                 key={aud.value}
@@ -285,13 +521,16 @@ export default function GeneratePage() {
                                                     if (errors.audience) setErrors({ ...errors, audience: undefined });
                                                 }}
                                                 className={cn(
-                                                    "flex items-center gap-2 rounded-xl border px-3 py-3 text-left text-sm transition-colors",
+                                                    "group flex items-center gap-2 rounded-xl border px-3 py-3 text-left text-sm transition-all duration-200",
                                                     audience === aud.value
-                                                        ? "border-primary bg-primary text-primary-foreground"
-                                                        : "border-border bg-card text-muted-foreground hover:border-foreground/40 hover:text-foreground"
+                                                        ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                                                        : "border-border bg-card text-muted-foreground hover:border-foreground/40 hover:text-foreground hover:bg-secondary/40"
                                                 )}
                                             >
-                                                <aud.icon className="h-4 w-4 shrink-0" />
+                                                <div className="relative h-4 w-4 shrink-0">
+                                                    <aud.icon className={cn("absolute inset-0 h-full w-full transition-opacity duration-150", audience === aud.value ? "opacity-0" : "opacity-100")} />
+                                                    <CheckCircle2 className={cn("absolute inset-0 h-full w-full transition-opacity duration-150", audience === aud.value ? "opacity-100" : "opacity-0")} />
+                                                </div>
                                                 <span className="truncate">{aud.label}</span>
                                             </button>
                                         ))}
@@ -302,8 +541,8 @@ export default function GeneratePage() {
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div className="space-y-2">
                                         <Label>Content type</Label>
-                                        <Select value={contentType} onValueChange={setContentType}>
-                                            <SelectTrigger className="border-border bg-input">
+                                        <Select value={contentType} onValueChange={(val) => { setContentType(val); if (errors.contentType) setErrors({ ...errors, contentType: undefined }); }}>
+                                            <SelectTrigger className={cn("border-border bg-input transition-colors", contentType && "border-l-2 border-l-primary", errors.contentType && "border-destructive")}>
                                                 <SelectValue placeholder="Choose a format" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -314,12 +553,13 @@ export default function GeneratePage() {
                                                 ))}
                                             </SelectContent>
                                         </Select>
+                                        {errors.contentType && <p className="text-xs text-destructive">{errors.contentType}</p>}
                                     </div>
 
                                     <div className="space-y-2">
                                         <Label>Tone</Label>
-                                        <Select value={tone} onValueChange={setTone}>
-                                            <SelectTrigger className="border-border bg-input">
+                                        <Select value={tone} onValueChange={(val) => { setTone(val); if (errors.tone) setErrors({ ...errors, tone: undefined }); }}>
+                                            <SelectTrigger className={cn("border-border bg-input transition-colors", tone && "border-l-2 border-l-primary", errors.tone && "border-destructive")}>
                                                 <SelectValue placeholder="Choose a tone" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -330,6 +570,7 @@ export default function GeneratePage() {
                                                 ))}
                                             </SelectContent>
                                         </Select>
+                                        {errors.tone && <p className="text-xs text-destructive">{errors.tone}</p>}
                                     </div>
                                 </div>
 
@@ -341,14 +582,37 @@ export default function GeneratePage() {
                                         onChange={(e) => setAdditionalContext(e.target.value)}
                                         placeholder="Optional notes: campaign angle, brand statements, regulatory constraints"
                                         className="min-h-24 resize-none border-border bg-input"
+                                        style={{ fieldSizing: "content" } as any}
                                     />
                                 </div>
 
-                                <div className="space-y-3 rounded-xl border border-border bg-secondary p-4">
+                                <div
+                                    className={cn("space-y-3 rounded-xl border-2 border-dashed p-4 transition-colors duration-200", policyFile ? "border-border bg-secondary/30" : "border-border/50 bg-secondary/10 hover:border-border hover:bg-secondary/30")}
+                                    onDragOver={(e) => {
+                                        e.preventDefault();
+                                        e.currentTarget.classList.add("bg-secondary/50");
+                                        e.currentTarget.classList.add("border-border");
+                                    }}
+                                    onDragLeave={(e) => {
+                                        e.preventDefault();
+                                        e.currentTarget.classList.remove("bg-secondary/50");
+                                        e.currentTarget.classList.remove("border-border");
+                                    }}
+                                    onDrop={(e) => {
+                                        e.preventDefault();
+                                        e.currentTarget.classList.remove("bg-secondary/50");
+                                        e.currentTarget.classList.remove("border-border");
+                                        const file = e.dataTransfer.files?.[0];
+                                        if (file) {
+                                            const fakeEvent = { target: { files: [file] } } as any;
+                                            handleFileUpload(fakeEvent);
+                                        }
+                                    }}
+                                >
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <p className="text-sm font-medium">Policy document</p>
-                                            <p className="text-xs text-muted-foreground">Attach brand/compliance files for stricter review</p>
+                                            <p className="text-xs text-muted-foreground">Attach brand/compliance files for stricter review (Drag & Drop)</p>
                                         </div>
                                         {policyFile && (
                                             <Button
@@ -365,14 +629,18 @@ export default function GeneratePage() {
                                     </div>
 
                                     {policyFile ? (
-                                        <div className="rounded-lg border border-border bg-card px-3 py-2 text-sm">
-                                            <span className="font-medium">{policyFile.name}</span>
-                                            <span className="ml-2 text-muted-foreground">{(policyFile.size / 1024).toFixed(1)} KB</span>
+                                        <div className="rounded-lg border border-border bg-card px-3 py-2 text-sm flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <FileText className="h-4 w-4 text-primary" />
+                                                <span className="font-medium">{policyFile.name}</span>
+                                            </div>
+                                            <span className="text-muted-foreground text-xs">{(policyFile.size / 1024).toFixed(1)} KB</span>
                                         </div>
                                     ) : (
-                                        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border px-4 py-5 text-sm text-muted-foreground hover:border-foreground/30 hover:text-foreground">
-                                            <Upload className="h-4 w-4" />
-                                            Upload PDF, DOC, DOCX, or TXT (max 5MB)
+                                        <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg py-4 text-sm text-muted-foreground hover:text-foreground">
+                                            <CloudUpload className="h-6 w-6 mb-1 text-muted-foreground/70" />
+                                            <span>Click to upload or drag and drop</span>
+                                            <span className="text-xs">PDF, DOC, DOCX, or TXT (max 5MB)</span>
                                             <input
                                                 type="file"
                                                 className="hidden"
@@ -383,98 +651,43 @@ export default function GeneratePage() {
                                     )}
                                 </div>
 
-                                <Button className="h-12 w-full text-sm font-medium" onClick={handleGenerate}>
-                                    Generate Content Package
-                                    <ArrowRight className="ml-2 h-4 w-4" />
-                                </Button>
+                                <div className="sticky bottom-6 z-20 mt-8 rounded-2xl bg-card/80 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-xl border border-border/50">
+                                    <div className="mb-4 space-y-2">
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="font-medium text-foreground">Readiness Score</span>
+                                            <span className={cn("font-medium", readinessScore === 100 ? "text-success" : "text-muted-foreground")}>{readinessScore}%</span>
+                                        </div>
+                                        <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+                                            <div
+                                                className={cn("h-full transition-all duration-500", readinessScore < 50 ? "bg-destructive" : readinessScore < 100 ? "bg-warning" : "bg-success")}
+                                                style={{ width: `${readinessScore}%` }}
+                                            />
+                                        </div>
+                                        {readinessScore < 100 && (
+                                            <p className="text-xs text-muted-foreground">Complete all required fields to maximize output quality.</p>
+                                        )}
+                                    </div>
+
+                                    <Button
+                                        className="btn-shimmer relative h-14 w-full text-base font-medium group overflow-hidden"
+                                        onClick={handleGenerate}
+                                        disabled={isGenerating}
+                                    >
+                                        <div className="absolute inset-0 -translate-x-full bg-linear-to-r from-transparent via-white/10 to-transparent group-hover:animate-[shimmer_1.5s_infinite]" />
+                                        <span className="relative flex items-center justify-center">
+                                            {isGenerating ? "Gathering requirements..." : "Generate Content Package"}
+                                            {!isGenerating && <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />}
+                                        </span>
+                                    </Button>
+                                </div>
                             </CardContent>
                         </Card>
+                    </motion.div>
 
-                        <div className="space-y-6">
-                            <Card className="app-panel border-border/80">
-                                <CardHeader>
-                                    <CardTitle className="text-base">Pipeline</CardTitle>
-                                    <CardDescription>Four agents produce a complete package.</CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-2">
-                                    {pipelineStages.map((stage, idx) => (
-                                        <div key={stage.id} className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5">
-                                            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-secondary">
-                                                <stage.icon className="h-4 w-4 text-foreground" />
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="truncate text-sm font-medium">{stage.agent}</p>
-                                                <p className="truncate text-xs text-muted-foreground">{stage.label}</p>
-                                            </div>
-                                            <Badge variant="secondary" className="text-xs">{idx + 1}</Badge>
-                                        </div>
-                                    ))}
-                                </CardContent>
-                            </Card>
-
-                            <Card className="app-panel border-border/80">
-                                <CardHeader>
-                                    <CardTitle className="text-base">Quick starts</CardTitle>
-                                    <CardDescription>Use one of these briefs and edit as needed.</CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-2">
-                                    {quickTemplates.map((template) => (
-                                        <button
-                                            key={template}
-                                            type="button"
-                                            onClick={() => setTopic(template)}
-                                            className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-left text-sm text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
-                                        >
-                                            {template}
-                                        </button>
-                                    ))}
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </div>
-                ) : (
-                    <Card className="app-panel mx-auto w-full max-w-3xl border-border/80">
-                        <CardHeader className="space-y-4">
-                            <div className="flex items-center justify-between gap-3">
-                                <div>
-                                    <CardTitle className="text-xl">Generating content package</CardTitle>
-                                    <CardDescription>{progressMessage}</CardDescription>
-                                </div>
-                                <div className="rounded-md border border-border bg-card px-3 py-1 text-sm text-muted-foreground">{elapsedTime}s</div>
-                            </div>
-                            <div className="h-2 rounded-full bg-secondary">
-                                <div className="h-full rounded-full bg-foreground transition-all duration-500" style={{ width: `${progress}%` }} />
-                            </div>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            {pipelineStages.map((stage, idx) => {
-                                const done = idx < currentStage;
-                                const active = idx === currentStage;
-
-                                return (
-                                    <div
-                                        key={stage.id}
-                                        className={cn(
-                                            "flex items-center gap-3 rounded-xl border px-4 py-3",
-                                            done && "border-border bg-secondary text-muted-foreground",
-                                            active && "border-foreground/40 bg-card text-foreground",
-                                            !done && !active && "border-border bg-card/60 text-muted-foreground"
-                                        )}
-                                    >
-                                        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-background">
-                                            {active ? <Loader2 className="h-4 w-4 animate-spin" /> : <stage.icon className="h-4 w-4" />}
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="text-sm font-medium">{stage.agent}</p>
-                                            <p className="text-xs text-muted-foreground">{stage.label}</p>
-                                        </div>
-                                        <Badge variant={done ? "secondary" : "outline"}>{done ? "Done" : active ? "Running" : "Queued"}</Badge>
-                                    </div>
-                                );
-                            })}
-                        </CardContent>
-                    </Card>
-                )}
+                    <motion.div className="hidden xl:block" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.06 }}>
+                        {renderRightPanel()}
+                    </motion.div>
+                </div>
             </div>
         </div>
     );

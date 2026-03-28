@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { motion } from "framer-motion";
 import {
   ArrowRight,
   Zap,
@@ -91,6 +92,22 @@ function Navigation() {
 
 // Hero Section
 function HeroSection() {
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.15,
+        delayChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
+  };
+
   return (
     <section className="relative overflow-hidden pt-32 pb-20 md:pt-40 md:pb-32">
       {/* Geometric shader background */}
@@ -104,28 +121,33 @@ function HeroSection() {
       </div>
 
       <div className="relative mx-auto max-w-7xl px-6">
-        <div className="mx-auto max-w-4xl text-center">
+        <motion.div
+          className="mx-auto max-w-4xl text-center"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
           {/* Badge */}
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-secondary/50 px-4 py-1.5 text-sm">
+          <motion.div variants={itemVariants} className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-secondary/50 px-4 py-1.5 text-sm">
             <Sparkles className="h-4 w-4 text-primary" />
             <span className="text-muted-foreground">AI-Powered Multi-Agent System</span>
-          </div>
+          </motion.div>
 
           {/* Main headline */}
-          <h1 className="mb-6 text-balance text-4xl font-bold leading-tight tracking-tight md:text-6xl lg:text-7xl">
+          <motion.h1 variants={itemVariants} className="mb-6 text-balance text-4xl font-bold leading-tight tracking-tight md:text-6xl lg:text-7xl">
             <span className="text-primary">Automate Your Marketing</span>
             <br />
             <span className="text-foreground">With AI That Understands</span>
-          </h1>
+          </motion.h1>
 
           {/* Subheadline */}
-          <p className="mx-auto mb-10 max-w-2xl text-pretty text-lg text-muted-foreground md:text-xl">
+          <motion.p variants={itemVariants} className="mx-auto mb-10 max-w-2xl text-pretty text-lg text-muted-foreground md:text-xl">
             Generate compliant, on-brand content for LinkedIn and Twitter in seconds.
             Our multi-agent AI system researches, writes, reviews, and creates visuals automatically.
-          </p>
+          </motion.p>
 
           {/* CTAs */}
-          <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <motion.div variants={itemVariants} className="flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button size="lg" asChild className="h-12 px-8 text-base">
               <Link href="/app">
                 Start Creating Content
@@ -138,10 +160,10 @@ function HeroSection() {
                 Watch Demo
               </Link>
             </Button>
-          </div>
+          </motion.div>
 
           {/* Trust indicators */}
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
+          <motion.div variants={itemVariants} className="mt-12 flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-success" />
               <span>No credit card required</span>
@@ -154,11 +176,16 @@ function HeroSection() {
               <CheckCircle2 className="h-4 w-4 text-success" />
               <span>SOC 2 certified</span>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Stats bar */}
-        <div className="mx-auto mt-20 grid max-w-4xl grid-cols-2 gap-8 border-t border-border pt-10 md:grid-cols-4">
+        <motion.div
+          className="mx-auto mt-20 grid max-w-4xl grid-cols-2 gap-8 border-t border-border pt-10 md:grid-cols-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6, ease: "easeOut" }}
+        >
           {[
             { value: "10K+", label: "Posts Generated", company: "Enterprise clients" },
             { value: "94%", label: "Compliance Rate", company: "Brand safety" },
@@ -171,7 +198,7 @@ function HeroSection() {
               <div className="mt-0.5 text-xs text-muted-foreground/60">{stat.company}</div>
             </div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

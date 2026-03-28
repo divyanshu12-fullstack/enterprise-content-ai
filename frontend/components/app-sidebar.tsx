@@ -36,6 +36,42 @@ const navItems = [
   },
 ];
 
+function NavItem({ item, pathname, navLinkClasses, setOpen }: any) {
+  const isActive = pathname === item.href || (item.href !== "/app" && pathname.startsWith(item.href));
+  const [hasTopic, setHasTopic] = useState(false);
+
+  useEffect(() => {
+    if (item.href !== "/app") return;
+    const handleTopicEvent = (e: any) => setHasTopic(e.detail.hasTopic);
+    window.addEventListener("contentai_topic_change", handleTopicEvent);
+    return () => window.removeEventListener("contentai_topic_change", handleTopicEvent);
+  }, [item.href]);
+
+  return (
+    <Link
+      href={item.href}
+      onClick={() => setOpen(false)}
+      className={cn(
+        navLinkClasses,
+        isActive
+          ? "bg-primary text-primary-foreground"
+          : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+      )}
+    >
+      <item.icon className={cn("h-4 w-4", isActive && "text-primary-foreground")} />
+      {item.title}
+      {isActive && pathname === "/app" ? (
+        <div
+          className={cn("ml-auto h-2 w-2 rounded-full transition-all duration-300", hasTopic ? "bg-white opacity-100 scale-100 shadow-[0_0_8px_rgba(255,255,255,0.8)]" : "bg-primary-foreground opacity-50 scale-75")}
+          title="Unsaved changes"
+        />
+      ) : isActive && (
+        <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary-foreground" />
+      )}
+    </Link>
+  );
+}
+
 export function AppSidebar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -62,28 +98,9 @@ export function AppSidebar() {
       <div className="mb-3 px-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
         Workspace
       </div>
-      {navItems.map((item) => {
-        const isActive = pathname === item.href || (item.href !== "/app" && pathname.startsWith(item.href));
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={() => setOpen(false)}
-            className={cn(
-              navLinkClasses,
-              isActive
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            )}
-          >
-            <item.icon className={cn("h-4 w-4", isActive && "text-primary-foreground")} />
-            {item.title}
-            {isActive && (
-              <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary-foreground" />
-            )}
-          </Link>
-        );
-      })}
+      {navItems.map((item) => (
+        <NavItem key={item.href} item={item} pathname={pathname} navLinkClasses={navLinkClasses} setOpen={setOpen} />
+      ))}
     </nav>
   );
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from queue import Empty, Queue
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -20,6 +21,10 @@ from db.session import get_session
 from sqlmodel import Session, select
 
 router = APIRouter(prefix="/api", tags=["content"])
+
+# Global thread pool to restrict concurrency and prevent OOM
+# max_workers=1 implies we only allow 1 content generation task concurrently, keeping memory safe.
+generation_executor = ThreadPoolExecutor(max_workers=1)
 
 
 class GenerateRequest(BaseModel):
@@ -115,23 +120,31 @@ def generate_content(
 ) -> FinalContentOutput:
     try:
         runtime = _resolve_runtime_settings(session=session, current_user=current_user)
-        result = run_content_pipeline(
-            topic=payload.topic,
-            audience=payload.audience,
-            content_type=payload.content_type,
-            tone=payload.tone,
-            additional_context=payload.additional_context,
-            policy_text=payload.policy_text,
-            model_name=runtime.model_name,
-            api_key=runtime.api_key,
-            auto_retry=runtime.auto_retry,
-            max_retries=runtime.max_retries,
-            include_source_urls=runtime.include_source_urls,
-            auto_generate_image=runtime.auto_generate_image,
-            strict_compliance=runtime.strict_compliance,
-            blocked_words=runtime.blocked_words,
-            enforce_twitter_limit=payload.enforce_twitter_limit,
-        )
+        
+        # Define the work function
+        def _do_work():
+            return run_content_pipeline(
+                topic=payload.topic,
+                audience=payload.audience,
+                content_type=payload.content_type,
+                tone=payload.tone,
+                additional_context=payload.additional_context,
+                policy_text=payload.policy_text,
+                model_name=runtime.model_name,
+                api_key=runtime.api_key,
+                auto_retry=runtime.auto_retry,
+                max_retries=runtime.max_retries,
+                include_source_urls=runtime.include_source_urls,
+                auto_generate_image=runtime.auto_generate_image,
+                strict_compliance=runtime.strict_compliance,
+                blocked_words=runtime.blocked_words,
+                enforce_twitter_limit=payload.enforce_twitter_limit,
+            )
+            
+        # Execute it in the strict thread pool to prevent OOM
+        future = generation_executor.submit(_do_work)
+        result = future.result()
+        
         return result
     except ValidationError as exc:
         raise HTTPException(
@@ -185,8 +198,8 @@ def generate_content_stream(
         finally:
             event_queue.put(("done", {}))
 
-    worker = threading.Thread(target=run_pipeline, daemon=True)
-    worker.start()
+    # Submit task to global thread pool instead of spawning a raw thread
+    generation_executor.submit(run_pipeline)
 
     def event_stream():
         while True:

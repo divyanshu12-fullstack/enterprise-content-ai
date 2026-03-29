@@ -1,5 +1,6 @@
 import logging
 import os
+from functools import lru_cache
 from crewai import Agent, LLM
 
 logger = logging.getLogger(__name__)
@@ -7,6 +8,7 @@ logger = logging.getLogger(__name__)
 from crew.tools import duckduckgo_search_tool
 
 
+@lru_cache(maxsize=1)
 def _build_llm(
     model_name: str | None = None,
     api_key: str | None = None,

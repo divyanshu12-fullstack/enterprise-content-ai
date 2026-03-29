@@ -140,8 +140,21 @@ export default function GeneratePage() {
     const [elapsedTime, setElapsedTime] = useState(0);
     const [errors, setErrors] = useState<{ topic?: string; audience?: string; contentType?: string; tone?: string; }>({});
     const [generationError, setGenerationError] = useState<string | null>(null);
+    const [stageElapsed, setStageElapsed] = useState(0);
 
     const topicRef = useRef<HTMLTextAreaElement>(null);
+
+    useEffect(() => {
+        if (isGenerating && !generationError) {
+            const stageStart = Date.now();
+            const interval = setInterval(() => {
+                setStageElapsed(Math.floor((Date.now() - stageStart) / 1000));
+            }, 1000);
+            return () => clearInterval(interval);
+        } else {
+            setStageElapsed(0);
+        }
+    }, [isGenerating, currentStage, generationError]);
 
     const progress = useMemo(() => {
         if (!isGenerating) return 0;
@@ -269,82 +282,109 @@ export default function GeneratePage() {
             toast.error("Generation failed", {
                 description: errorMsg,
             });
-            setIsGenerating(false);
+            // Do not reset isGenerating so the error is inline
         } finally {
             clearInterval(timerInterval);
         }
     };
 
     const renderRightPanel = () => {
+        const estimatedSeconds = Math.max(0, Math.ceil(((pipelineStages.length - currentStage) * 2600) / 1000) - stageElapsed);
+
         return (
             <div className="space-y-6">
                 {isGenerating ? (
-                    <Card className="app-panel border-primary/30 shadow-2xl shadow-primary/5 relative overflow-hidden">
-                        <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-transparent via-primary/50 to-transparent animate-[shimmer_2s_infinite]" />
+                    <Card className={cn("app-panel shadow-2xl relative overflow-hidden", generationError ? "border-destructive border-2" : "border-primary/30 shadow-primary/5 generating-bg")}>
+                        {!generationError && <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-transparent via-primary/50 to-transparent animate-[shimmer_2s_infinite]" />}
                         <CardHeader className="space-y-4 pb-4">
                             <div className="flex items-start justify-between gap-3">
                                 <div>
                                     <CardTitle className="text-xl">Generating Package</CardTitle>
-                                    <CardDescription className="mt-1.5">{progressMessage}</CardDescription>
+                                    <CardDescription className="mt-1.5">{generationError ? "Pipeline halted" : progressMessage}</CardDescription>
                                 </div>
                                 <div className="rounded-md border border-border bg-secondary/50 px-3 py-1.5 text-sm font-mono text-muted-foreground flex flex-col items-end">
-                                    <span className={cn("text-foreground", isGenerating && "text-primary animate-pulse")}>{formatTime(elapsedTime)}</span>
-                                    <span className="text-[10px] opacity-70">/ 00:31</span>
+                                    <span className={cn("text-foreground", isGenerating && !generationError && "text-primary animate-pulse")}>{formatTime(elapsedTime)}</span>
+                                    <span className="text-[10px] opacity-70">/ {formatTime(Math.ceil((pipelineStages.length * 2600) / 1000))}</span>
                                 </div>
                             </div>
                             <div className="flex gap-1 h-2 w-full">
                                 {pipelineStages.map((_, idx) => {
                                     const done = idx < currentStage;
-                                    const active = idx === currentStage;
+                                    const active = idx === currentStage && !generationError;
                                     return (
                                         <div key={idx} className="h-full flex-1 overflow-hidden rounded-full bg-secondary">
                                             <div
-                                                className={cn("h-full rounded-full transition-all duration-500", done ? "bg-success w-full" : active ? "bg-primary w-full animate-pulse" : "w-0")}
+                                                className={cn("h-full rounded-full transition-[width] ease-linear", done ? "bg-success w-full duration-300" : active ? "bg-primary w-full duration-[2600ms]" : "bg-primary w-0 duration-0")}
                                             />
                                         </div>
                                     );
                                 })}
                             </div>
+                            {!generationError && (
+                                <div className="text-xs text-muted-foreground font-mono mt-1">
+                                    Est. remaining: ~{formatTime(estimatedSeconds)}
+                                </div>
+                            )}
                         </CardHeader>
-                        <CardContent className="space-y-3">
-                            <AnimatePresence mode="popLayout">
-                                {pipelineStages.map((stage, idx) => {
-                                    const done = idx < currentStage;
-                                    const active = idx === currentStage;
+                        <CardContent className="space-y-3 relative z-10">
+                            {generationError ? (
+                                <div className="rounded-xl border border-destructive/50 bg-destructive/10 p-5 flex flex-col items-center text-center gap-3">
+                                    <AlertTriangle className="h-8 w-8 text-destructive" />
+                                    <p className="text-sm font-medium text-destructive">{generationError}</p>
+                                    <Button
+                                        variant="outline"
+                                        className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground mt-2 w-full"
+                                        onClick={() => {
+                                            setIsGenerating(false);
+                                            setGenerationError(null);
+                                            setTimeout(() => topicRef.current?.focus(), 100);
+                                        }}
+                                    >
+                                        Try again
+                                    </Button>
+                                </div>
+                            ) : (
+                                <AnimatePresence mode="popLayout">
+                                    {pipelineStages.map((stage, idx) => {
+                                        const done = idx < currentStage;
+                                        const active = idx === currentStage;
 
-                                    return (
-                                        <motion.div
-                                            key={stage.id}
-                                            layout
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            className={cn(
-                                                "flex items-center gap-3 rounded-xl border px-4 py-3 transition-colors duration-300",
-                                                done && "border-success/30 bg-success/5 text-success",
-                                                active && "border-primary/50 bg-primary/10 text-foreground shadow-sm",
-                                                !done && !active && "border-border bg-card/40 text-muted-foreground opacity-60"
-                                            )}
-                                        >
-                                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-background/50 shadow-sm">
-                                                {done ? (
-                                                    <CheckCircle2 className="h-5 w-5 text-success" />
-                                                ) : active ? (
-                                                    <Loader2 className="h-5 w-5 text-primary animate-spin" />
-                                                ) : (
-                                                    <Lock className="h-4 w-4 opacity-50" />
+                                        return (
+                                            <motion.div
+                                                key={stage.id}
+                                                layout
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                className={cn(
+                                                    "flex items-center gap-3 rounded-xl border px-4 py-3 transition-all duration-300",
+                                                    done && "border-success/30 bg-success/5 text-success",
+                                                    active && "border-l-4 border-l-primary border-y-primary/50 border-r-primary/50 bg-primary/10 text-foreground shadow-sm animate-pulse",
+                                                    !done && !active && "border-border bg-card/40 text-muted-foreground opacity-60"
                                                 )}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className={cn("text-sm font-medium truncate", done && "text-success", active && "text-foreground")}>{stage.agent}</p>
-                                                <p className="text-xs opacity-80 truncate">{stage.label}</p>
-                                            </div>
-                                            {active && (
-                                                <span className="flex h-2 w-2 rounded-full bg-primary animate-ping" />
-                                            )}
-                                        </motion.div>
-                                    );
-                                })}
-                            </AnimatePresence>
+                                            >
+                                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-background/50 shadow-sm">
+                                                    {done ? (
+                                                        <CheckCircle2 className="h-5 w-5 text-success" />
+                                                    ) : active ? (
+                                                        <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                                                    ) : (
+                                                        <Lock className="h-4 w-4 opacity-50" />
+                                                    )}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className={cn("text-sm font-medium truncate", done && "text-success", active && "text-foreground")}>{stage.agent}</p>
+                                                    <p className={cn("text-xs opacity-80 truncate", done && "line-through")}>{stage.label}</p>
+                                                </div>
+                                                {active && (
+                                                    <span className="text-xs font-mono font-medium text-primary">
+                                                        {formatTime(stageElapsed)}
+                                                    </span>
+                                                )}
+                                            </motion.div>
+                                        );
+                                    })}
+                                </AnimatePresence>
+                            )}
                         </CardContent>
                     </Card>
                 ) : (
@@ -435,7 +475,7 @@ export default function GeneratePage() {
                     <div className="flex items-center gap-3">
                         <Sheet>
                             <SheetTrigger asChild>
-                                <Button variant="outline" size="sm" className="xl:hidden h-8 gap-2 bg-secondary/20">
+                                <Button variant="outline" size="sm" className="md:hidden h-8 gap-2 bg-secondary/20">
                                     <Info className="h-4 w-4" />
                                     Pipeline info
                                 </Button>
@@ -467,13 +507,14 @@ export default function GeneratePage() {
                     }
                 `}} />
 
-                <div className={cn("mx-auto grid w-full max-w-[1400px] gap-6", !isGenerating && "xl:grid-cols-[1.8fr_1fr]", isGenerating && "xl:grid-cols-[1.8fr_1.8fr]")}>
+                <div className={cn("mx-auto grid w-full max-w-[1400px] gap-6", !isGenerating && "md:grid-cols-[1.8fr_1fr]", isGenerating && "md:grid-cols-[1.8fr_1.8fr]")}>
                     <motion.div
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3 }}
-                        className={cn("transition-all duration-500", isGenerating && "opacity-60 blur-sm pointer-events-none grayscale select-none")}
+                        className={cn("transition-all duration-500 relative", isGenerating && "opacity-80 blur-[1px] grayscale-[0.3] select-none pointer-events-none")}
                     >
+                        {isGenerating && <div className="absolute inset-0 z-50 pointer-events-none" />}
                         <Card className="app-panel border-border/80">
                             <CardHeader className="space-y-2">
                                 <div className="flex flex-col gap-1.5">
@@ -651,15 +692,15 @@ export default function GeneratePage() {
                                     )}
                                 </div>
 
-                                <div className="sticky bottom-6 z-20 mt-8 rounded-2xl bg-card/80 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-xl border border-border/50">
+                                <div className="sticky z-20 mt-8 rounded-2xl bg-card/80 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-xl border border-border/50" style={{ bottom: "1rem", paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
                                     <div className="mb-4 space-y-2">
                                         <div className="flex items-center justify-between text-sm">
-                                            <span className="font-medium text-foreground">Readiness Score</span>
+                                            <span className="font-medium text-foreground">Brief completeness</span>
                                             <span className={cn("font-medium", readinessScore === 100 ? "text-success" : "text-muted-foreground")}>{readinessScore}%</span>
                                         </div>
                                         <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
                                             <div
-                                                className={cn("h-full transition-all duration-500", readinessScore < 50 ? "bg-destructive" : readinessScore < 100 ? "bg-warning" : "bg-success")}
+                                                className="h-full transition-all duration-500 bg-success"
                                                 style={{ width: `${readinessScore}%` }}
                                             />
                                         </div>
@@ -684,7 +725,7 @@ export default function GeneratePage() {
                         </Card>
                     </motion.div>
 
-                    <motion.div className="hidden xl:block" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.06 }}>
+                    <motion.div className="hidden md:block w-full max-w-full min-w-0" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.06 }}>
                         {renderRightPanel()}
                     </motion.div>
                 </div>

@@ -166,7 +166,7 @@ function HeroSection() {
               </Link>
             </Button>
             <Button size="lg" variant="outline" asChild className="h-12 px-8 text-base">
-              <Link href="#how-it-works">
+              <Link href="https://drive.google.com/file/d/1_mAg23JtNLbKyg-0YwVc9lu4P42TdO3K/view?usp=sharing" target="_blank" rel="noopener noreferrer">
                 <Play className="mr-2 h-4 w-4" />
                 Watch Demo
               </Link>

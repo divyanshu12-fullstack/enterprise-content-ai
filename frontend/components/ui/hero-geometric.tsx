@@ -1,6 +1,6 @@
 "use client";
 
- 
+
 import { useMemo, useRef } from "react";
 import { Canvas, ThreeElements, useFrame } from "@react-three/fiber";
 import { motion } from "framer-motion";
@@ -139,9 +139,9 @@ function GradientPlane({
         [color1, color2],
     );
 
-    useFrame((state) => {
-        const { clock, size } = state;
-        uniforms.uTime.value = clock.getElapsedTime() * speed;
+    useFrame((state, delta) => {
+        const { size } = state;
+        uniforms.uTime.value += delta * speed;
         uniforms.uResolution.value.set(size.width, size.height);
         uniforms.uColor1.value.set(color1);
         uniforms.uColor2.value.set(color2);

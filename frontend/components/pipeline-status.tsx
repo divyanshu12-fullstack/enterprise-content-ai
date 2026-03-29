@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { cn } from "@/lib/utils"
-import { CheckCircle2, Loader2, Lock } from "lucide-react"
+import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
+import { CheckCircle2, Loader2, Lock } from "lucide-react";
 
 const agents = [
   {
@@ -25,7 +25,7 @@ const agents = [
     title: "Visual Agent",
     subtitle: "Visual prompt generation",
   },
-]
+];
 
 interface PipelineStatusProps {
   isRunning: boolean;
@@ -33,36 +33,36 @@ interface PipelineStatusProps {
 }
 
 export function PipelineStatus({ isRunning, currentStage }: PipelineStatusProps) {
-  const [stageTimes, setStageTimes] = useState<number[]>(agents.map(() => 0))
+  const [stageTimes, setStageTimes] = useState<number[]>(agents.map(() => 0));
 
   useEffect(() => {
     if (!isRunning) {
-      setStageTimes(agents.map(() => 0))
-      return
+      setStageTimes(agents.map(() => 0));
+      return;
     }
 
     if (currentStage >= agents.length) return;
 
     const timer = setInterval(() => {
       setStageTimes((prev) => {
-        const newTimes = [...prev]
-        newTimes[currentStage] += 1
-        return newTimes
-      })
-    }, 1000)
+        const newTimes = [...prev];
+        newTimes[currentStage] += 1;
+        return newTimes;
+      });
+    }, 1000);
 
-    return () => clearInterval(timer)
-  }, [isRunning, currentStage])
+    return () => clearInterval(timer);
+  }, [isRunning, currentStage]);
 
-  if (!isRunning) return null
+  if (!isRunning) return null;
 
-  const isComplete = currentStage >= agents.length
-  const currentActionText = isComplete ? "Generation complete" : agents[currentStage]?.subtitle || "Finalizing..."
+  const isComplete = currentStage >= agents.length;
+  const currentActionText = isComplete ? "Generation complete" : agents[currentStage]?.subtitle || "Finalizing...";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div className="w-full max-w-2xl rounded-2xl border border-zinc-800/60 bg-[#0a0a0a] p-8 shadow-2xl">
-        
+
         {/* Header Section */}
         <div className="mb-6">
           <h2 className="text-2xl font-bold tracking-tight text-white mb-1">Generating Package</h2>
@@ -72,11 +72,11 @@ export function PipelineStatus({ isRunning, currentStage }: PipelineStatusProps)
         {/* Progress Bars */}
         <div className="flex gap-2 mb-8">
           {agents.map((_, idx) => {
-            const completed = idx < currentStage
-            const current = idx === currentStage
+            const completed = idx < currentStage;
+            const current = idx === currentStage;
             return (
               <div key={idx} className="h-2 flex-1 rounded-full bg-zinc-800 overflow-hidden">
-                <div 
+                <div
                   className={cn(
                     "h-full rounded-full transition-all duration-500",
                     completed ? "bg-[#4ade80]" : current ? "bg-white" : "bg-transparent"
@@ -84,25 +84,25 @@ export function PipelineStatus({ isRunning, currentStage }: PipelineStatusProps)
                   style={{ width: completed || current ? "100%" : "0%" }}
                 />
               </div>
-            )
+            );
           })}
         </div>
 
         {/* Agents List */}
         <div className="space-y-3">
           {agents.map((agent, index) => {
-            const isActive = index === currentStage
-            const isFinished = index < currentStage
+            const isActive = index === currentStage;
+            const isFinished = index < currentStage;
 
             return (
               <div
                 key={agent.id}
                 className={cn(
                   "flex items-center justify-between rounded-xl border p-4 transition-all duration-300",
-                  isFinished 
-                    ? "border-[#4ade80]/30 bg-transparent" 
-                    : isActive 
-                      ? "border-zinc-600 bg-zinc-900/30" 
+                  isFinished
+                    ? "border-[#4ade80]/30 bg-transparent"
+                    : isActive
+                      ? "border-zinc-600 bg-zinc-900/30"
                       : "border-zinc-800 bg-transparent opacity-50"
                 )}
               >
@@ -119,10 +119,10 @@ export function PipelineStatus({ isRunning, currentStage }: PipelineStatusProps)
                       <Lock className="h-5 w-5" />
                     )}
                   </div>
-                  
+
                   <div>
                     <h3 className={cn(
-                      "font-semibold text-sm", 
+                      "font-semibold text-sm",
                       isFinished ? "text-[#4ade80]" : isActive ? "text-zinc-200" : "text-zinc-400"
                     )}>
                       {agent.title}
@@ -148,10 +148,10 @@ export function PipelineStatus({ isRunning, currentStage }: PipelineStatusProps)
                   ) : null}
                 </div>
               </div>
-            )
+            );
           })}
         </div>
       </div>
     </div>
-  )
+  );
 }

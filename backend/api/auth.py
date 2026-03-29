@@ -8,7 +8,7 @@ from sqlmodel import Session, select
 
 from api.deps import get_current_user
 from db.models import User
-from db.security import create_access_token, hash_password, verify_password
+from db.security import create_access_token, hash_password, verify_password, pwd_context
 from db.session import get_session
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -54,6 +54,7 @@ def signup(payload: SignupRequest, session: Session = Depends(get_session)) -> A
     except HTTPException:
         raise
     except SQLAlchemyError as exc:
+        session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Database error while creating account",
@@ -63,8 +64,11 @@ def signup(payload: SignupRequest, session: Session = Depends(get_session)) -> A
 @router.post("/login", response_model=AuthTokenResponse)
 def login(payload: LoginRequest, session: Session = Depends(get_session)) -> AuthTokenResponse:
     try:
-        user = session.exec(select(User).where(User.email == payload.email, User.is_active == True)).first()
-        if not user or not verify_password(payload.password, user.password_hash):
+        user = session.exec(select(User).where(User.email == payload.email, User.is_active)).first()
+        if not user:
+            pwd_context.dummy_verify()
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        if not verify_password(payload.password, user.password_hash):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
         user.updated_at = datetime.now(timezone.utc)
@@ -76,6 +80,7 @@ def login(payload: LoginRequest, session: Session = Depends(get_session)) -> Aut
     except HTTPException:
         raise
     except SQLAlchemyError as exc:
+        session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Database error while logging in",

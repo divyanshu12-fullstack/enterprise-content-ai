@@ -20,12 +20,15 @@ app = FastAPI(
     version="0.2.0",
 )
 
+allowed_origins_str = getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
 app.include_router(api_router)
@@ -50,5 +53,4 @@ def health() -> dict[str, str]:
         "status": "ok",
         "service": "enterprise-content-ai-backend",
         "version": app.version,
-        "model": getenv("GEMINI_MODEL", "gemini-3.1-flash"),
     }

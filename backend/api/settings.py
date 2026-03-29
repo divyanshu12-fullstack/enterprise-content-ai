@@ -42,9 +42,16 @@ def _get_or_create_settings(session: Session, user: User) -> UserSettings:
         return settings
 
     settings = UserSettings(user_id=user.id)
-    session.add(settings)
-    session.commit()
-    session.refresh(settings)
+    try:
+        session.add(settings)
+        session.commit()
+        session.refresh(settings)
+    except Exception as exc:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database error while creating settings",
+        ) from exc
     return settings
 
 
@@ -83,9 +90,16 @@ def upsert_settings(
     settings.custom_blocked_words = payload.custom_blocked_words
     settings.updated_at = datetime.now(timezone.utc)
 
-    session.add(settings)
-    session.commit()
-    session.refresh(settings)
+    try:
+        session.add(settings)
+        session.commit()
+        session.refresh(settings)
+    except Exception as exc:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database error while updating settings",
+        ) from exc
 
     return SettingsResponse(**payload.model_dump(), has_api_key=bool(settings.encrypted_api_key))
 
@@ -99,8 +113,15 @@ def set_api_key(
     settings = _get_or_create_settings(session, current_user)
     settings.encrypted_api_key = encrypt_secret(payload.api_key)
     settings.updated_at = datetime.now(timezone.utc)
-    session.add(settings)
-    session.commit()
+    try:
+        session.add(settings)
+        session.commit()
+    except Exception as exc:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database error while saving API key",
+        ) from exc
     return {"status": "ok"}
 
 

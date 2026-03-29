@@ -48,7 +48,7 @@ export default function AppLayout({ children }: { children: React.ReactNode; }) 
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background/95 backdrop-blur px-6 relative overflow-hidden">
         {/* Background glow effects */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-125 h-125 bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
 
         <div className="relative flex flex-col items-center gap-6 z-10">
           <div className="relative">

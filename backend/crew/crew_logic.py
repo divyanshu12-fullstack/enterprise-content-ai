@@ -1,6 +1,7 @@
 import json
 import re
 import uuid
+import logging
 from typing import Any
 from collections.abc import Callable
 
@@ -12,6 +13,8 @@ from crew.agents import build_agents
 from crew.compliance import apply_deterministic_compliance
 from crew.schemas import FinalContentOutput
 from crew.tasks import build_tasks
+
+logger = logging.getLogger(__name__)
 
 
 def _extract_json_block(text: str) -> dict[str, Any]:
@@ -44,7 +47,7 @@ def _kickoff_and_validate(
 ) -> FinalContentOutput:
     if progress_callback:
         progress_callback("research", "Gathering market context")
-    print(f"[TASK {run_id}] Kicking off crew execution...")
+    logger.info(f"[TASK {run_id}] Kicking off crew execution...")
     result = crew.kickoff(
         inputs={
             "topic": topic,
@@ -59,8 +62,7 @@ def _kickoff_and_validate(
     raw_output = getattr(result, "raw", str(result))
     if progress_callback:
         progress_callback("writing", "Drafting LinkedIn and Twitter content")
-    print(f"\n[RESULT {run_id}] Raw final output from crew:")
-    print(raw_output)
+    logger.info(f"\n[RESULT {run_id}] Raw final output from crew:\n{raw_output}")
 
     parsed_json = _extract_json_block(raw_output)
     if progress_callback:
@@ -90,19 +92,19 @@ def run_content_pipeline(
     progress_callback: Callable[[str, str], None] | None = None,
 ) -> FinalContentOutput:
     run_id = uuid.uuid4().hex[:8]
-    print(f"\n[INIT {run_id}] Starting CrewAI content pipeline")
-    print(f"[INIT {run_id}] Topic: {topic}")
-    print(f"[INIT {run_id}] Audience: {audience}")
+    logger.info(f"\n[INIT {run_id}] Starting CrewAI content pipeline")
+    logger.info(f"[INIT {run_id}] Topic: {topic}")
+    logger.info(f"[INIT {run_id}] Audience: {audience}")
     if content_type:
-        print(f"[INIT {run_id}] Content type: {content_type}")
+        logger.info(f"[INIT {run_id}] Content type: {content_type}")
     if tone:
-        print(f"[INIT {run_id}] Tone: {tone}")
+        logger.info(f"[INIT {run_id}] Tone: {tone}")
     if additional_context:
-        print(f"[INIT {run_id}] Additional context provided: yes")
+        logger.info(f"[INIT {run_id}] Additional context provided: yes")
     if policy_text:
-        print(f"[INIT {run_id}] Policy text provided: yes")
+        logger.info(f"[INIT {run_id}] Policy text provided: yes")
     if model_name:
-        print(f"[INIT {run_id}] Runtime model override: {model_name}")
+        logger.info(f"[INIT {run_id}] Runtime model override: {model_name}")
     if progress_callback:
         progress_callback("init", "Initializing generation pipeline")
 
@@ -149,15 +151,14 @@ def run_content_pipeline(
             break
         except (ValueError, ValidationError, json.JSONDecodeError) as exc:
             last_error = exc
-            print(f"[VALIDATION {run_id}] Attempt {attempt}/{attempts} failed: {exc}")
+            logger.error(f"[VALIDATION {run_id}] Attempt {attempt}/{attempts} failed: {exc}")
             if attempt == attempts:
                 raise
 
     if validated is None:
         raise last_error or RuntimeError("Pipeline validation failed without a captured error")
 
-    print(f"\n[VALIDATION {run_id}] Parsed + validated FinalContentOutput:")
-    print(validated.model_dump_json(indent=2))
+    logger.info(f"\n[VALIDATION {run_id}] Parsed + validated FinalContentOutput:\n{validated.model_dump_json(indent=2)}")
     if progress_callback:
         progress_callback("done", "Generation complete")
     return validated
@@ -165,8 +166,8 @@ def run_content_pipeline(
 
 if __name__ == "__main__":
     load_dotenv()
-    print("[TEST] Running PHASE 1 terminal test for CrewAI backend")
-    print("[TEST] This will execute all 4 agents with verbose logs.\n")
+    logger.info("[TEST] Running PHASE 1 terminal test for CrewAI backend")
+    logger.info("[TEST] This will execute all 4 agents with verbose logs.\n")
 
     sample_topic = "AI governance trends in enterprise marketing for 2026"
     sample_audience = "B2B marketing leaders"
@@ -180,5 +181,5 @@ if __name__ == "__main__":
         policy_text="Do not use guarantee language or financial claims.",
     )
 
-    print("\n[TEST] Final structured JSON (ready for API response):")
-    print(final_output.model_dump_json(indent=2))
+    logger.info("\n[TEST] Final structured JSON (ready for API response):")
+    logger.info(final_output.model_dump_json(indent=2))

@@ -314,7 +314,7 @@ export default function GeneratePage() {
                                     return (
                                         <div key={idx} className="h-full flex-1 overflow-hidden rounded-full bg-secondary">
                                             <div
-                                                className={cn("h-full rounded-full transition-[width] ease-linear", done ? "bg-success w-full duration-300" : active ? "bg-primary w-full duration-[2600ms]" : "bg-primary w-0 duration-0")}
+                                                className={cn("h-full rounded-full transition-[width] ease-linear", done ? "bg-success w-full duration-300" : active ? "bg-primary w-full duration-2600" : "bg-primary w-0 duration-0")}
                                             />
                                         </div>
                                     );
@@ -507,7 +507,7 @@ export default function GeneratePage() {
                     }
                 `}} />
 
-                <div className={cn("mx-auto grid w-full max-w-[1400px] gap-6", !isGenerating && "md:grid-cols-[1.8fr_1fr]", isGenerating && "md:grid-cols-[1.8fr_1.8fr]")}>
+                <div className={cn("mx-auto grid w-full max-w-350 gap-6", !isGenerating && "md:grid-cols-[1.8fr_1fr]", isGenerating && "md:grid-cols-[1.8fr_1.8fr]")}>
                     <motion.div
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}

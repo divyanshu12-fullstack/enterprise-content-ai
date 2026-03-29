@@ -24,7 +24,7 @@ def get_current_user_optional(
     except (ValueError, JWTError):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
-    user = session.exec(select(User).where(User.id == user_id, User.is_active == True)).first()
+    user = session.exec(select(User).where(User.id == user_id, User.is_active)).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     return user

@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from statistics import median
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 from sqlalchemy import func
@@ -112,9 +112,16 @@ def create_generation(
     if record.duration_ms is None and record.completed_at is not None:
         record.duration_ms = _duration_ms(record.created_at, record.completed_at)
 
-    session.add(record)
-    session.commit()
-    session.refresh(record)
+    try:
+        session.add(record)
+        session.commit()
+        session.refresh(record)
+    except Exception as exc:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database error while saving generation record",
+        ) from exc
     return _to_response(record)
 
 
@@ -145,12 +152,29 @@ def generation_metrics(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> GenerationMetricsResponse:
-    rows = session.exec(select(Generation).where(Generation.user_id == current_user.id)).all()
+    total_runs = session.exec(select(func.count(Generation.id)).where(Generation.user_id == current_user.id)).one()
+    
+    approved_runs = session.exec(
+        select(func.count(Generation.id)).where(
+            Generation.user_id == current_user.id,
+            func.lower(Generation.compliance_status) == "approved"
+        )
+    ).one()
+    
+    rejected_runs = session.exec(
+        select(func.count(Generation.id)).where(
+            Generation.user_id == current_user.id,
+            func.lower(Generation.compliance_status) == "rejected"
+        )
+    ).one()
 
-    total_runs = len(rows)
-    approved_runs = sum(1 for r in rows if r.compliance_status.upper() == "APPROVED")
-    rejected_runs = sum(1 for r in rows if r.compliance_status.upper() == "REJECTED")
-    durations = [r.duration_ms for r in rows if isinstance(r.duration_ms, int) and r.duration_ms >= 0]
+    durations = session.exec(
+        select(Generation.duration_ms).where(
+            Generation.user_id == current_user.id,
+            Generation.duration_ms.isnot(None),
+            Generation.duration_ms >= 0
+        )
+    ).all()
 
     pass_rate = (approved_runs / total_runs) * 100 if total_runs else 0.0
     rejection_rate = (rejected_runs / total_runs) * 100 if total_runs else 0.0
@@ -192,8 +216,15 @@ def delete_generation(
     if not record:
         raise HTTPException(status_code=404, detail="Generation not found")
 
-    session.delete(record)
-    session.commit()
+    try:
+        session.delete(record)
+        session.commit()
+    except Exception as exc:
+        session.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Database error while deleting generation",
+        ) from exc
     return {"status": "ok"}
 
 
@@ -203,9 +234,16 @@ def clear_generations(
     session: Session = Depends(get_session),
 ) -> dict[str, int]:
     rows = session.exec(select(Generation).where(Generation.user_id == current_user.id)).all()
-    for row in rows:
-        session.delete(row)
-    session.commit()
+    try:
+        for row in rows:
+            session.delete(row)
+        session.commit()
+    except Exception as exc:
+        session.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Database error while clearing generations",
+        ) from exc
     return {"deleted": len(rows)}
 
 
@@ -227,9 +265,16 @@ def approve_generation(
     if payload.notes:
         record.compliance_notes = payload.notes
     record.completed_at = datetime.now(timezone.utc)
-    session.add(record)
-    session.commit()
-    session.refresh(record)
+    try:
+        session.add(record)
+        session.commit()
+        session.refresh(record)
+    except Exception as exc:
+        session.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Database error while approving generation",
+        ) from exc
     return _to_response(record)
 
 
@@ -251,9 +296,16 @@ def reject_generation(
     if payload.notes:
         record.compliance_notes = payload.notes
     record.completed_at = datetime.now(timezone.utc)
-    session.add(record)
-    session.commit()
-    session.refresh(record)
+    try:
+        session.add(record)
+        session.commit()
+        session.refresh(record)
+    except Exception as exc:
+        session.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Database error while rejecting generation",
+        ) from exc
     return _to_response(record)
 
 
@@ -274,7 +326,14 @@ def publish_generation(
     if payload.notes:
         record.compliance_notes = payload.notes
     record.completed_at = datetime.now(timezone.utc)
-    session.add(record)
-    session.commit()
-    session.refresh(record)
+    try:
+        session.add(record)
+        session.commit()
+        session.refresh(record)
+    except Exception as exc:
+        session.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Database error while publishing generation",
+        ) from exc
     return _to_response(record)

@@ -24,7 +24,12 @@ test("golden flow: login -> generate -> approval -> publish -> history", async (
         generation: null,
     };
 
-    await page.route("http://localhost:8000/**", async (route) => {
+    // Define base URL strictly per environment without requiring Node global typings.
+    const nodeEnv = (globalThis as typeof globalThis & {
+        process?: { env?: Record<string, string | undefined>; };
+    }).process?.env;
+    const API_BASE_URL = nodeEnv?.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+    await page.route(`${API_BASE_URL}/**`, async (route) => {
         const request = route.request();
         const url = new URL(request.url());
         const method = request.method();

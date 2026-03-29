@@ -13,14 +13,14 @@ export default function AppLoading() {
             </header>
 
             <div className="px-4 py-6 md:px-6 md:py-8 lg:pb-16 max-md:pb-24">
-                <div className="mx-auto w-full max-w-[1400px]">
+                <div className="mx-auto w-full max-w-350">
                     <div className="grid gap-6 md:grid-cols-[1.8fr_1fr]">
                         <div className="space-y-6">
-                            <div className="h-[400px] w-full animate-pulse rounded-xl border border-border/50 bg-card/50 shadow-sm" />
-                            <div className="h-[200px] w-full animate-pulse rounded-xl border border-border/50 bg-card/50 shadow-sm" />
+                            <div className="h-100 w-full animate-pulse rounded-xl border border-border/50 bg-card/50 shadow-sm" />
+                            <div className="h-50 w-full animate-pulse rounded-xl border border-border/50 bg-card/50 shadow-sm" />
                         </div>
                         <div className="hidden space-y-6 md:block">
-                            <div className="h-[624px] w-full animate-pulse rounded-xl border border-border/50 bg-card/50 shadow-sm" />
+                            <div className="h-156 w-full animate-pulse rounded-xl border border-border/50 bg-card/50 shadow-sm" />
                         </div>
                     </div>
                 </div>

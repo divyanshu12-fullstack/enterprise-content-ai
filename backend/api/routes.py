@@ -27,8 +27,8 @@ class GenerateRequest(BaseModel):
     audience: str = Field(..., min_length=2, max_length=120)
     content_type: str | None = Field(default=None, max_length=80)
     tone: str | None = Field(default=None, max_length=80)
-    additional_context: str | None = None
-    policy_text: str | None = None
+    additional_context: str | None = Field(default=None, max_length=10000)
+    policy_text: str | None = Field(default=None, max_length=50000)
 
 
 class ErrorResponse(BaseModel):
@@ -81,7 +81,10 @@ def _resolve_runtime_settings(
     if settings.encrypted_api_key:
         try:
             api_key = decrypt_secret(settings.encrypted_api_key)
-        except Exception:
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to decrypt user API key: {e}")
             api_key = defaults.api_key
 
     return RuntimeSettings(

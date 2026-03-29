@@ -1,6 +1,8 @@
+import logging
 import os
-
 from crewai import Agent, LLM
+
+logger = logging.getLogger(__name__)
 
 from crew.tools import duckduckgo_search_tool
 
@@ -22,7 +24,7 @@ def _build_llm(
     if temperature is None:
         temperature = float(os.getenv("GEMINI_TEMPERATURE", "0.2"))
 
-    print(f"[INIT] Gemini model configured: {model_name}")
+    logger.info(f"[INIT] Gemini model configured: {model_name}")
     return LLM(
         model=model_name,
         api_key=api_key,
@@ -96,7 +98,7 @@ def build_agents(
         allow_delegation=False,
     )
 
-    print("[INIT] Agents created: Researcher, Writer, Brand Governance, Visual")
+    logger.info("[INIT] Agents created: Researcher, Writer, Brand Governance, Visual")
     return {
         "researcher": researcher,
         "writer": writer,

@@ -115,10 +115,12 @@ export default function HistoryPage() {
     return (
         <div className="min-h-screen bg-transparent">
             <header className="app-header-glass sticky top-0 z-30 border-b border-border/80">
-                <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-4 py-3 pl-14 md:h-16 md:flex-nowrap md:px-8 md:py-0 md:pl-8">
+                <div className="flex min-h-20 flex-wrap items-center justify-between gap-3 px-4 py-5 pl-14 md:min-h-24 md:flex-nowrap md:px-6 md:py-6 md:pl-6">
                     <div>
                         <h1 className="text-lg font-semibold tracking-tight md:text-xl">History</h1>
-                        <p className="text-sm text-muted-foreground">Search, review, and manage generated packages</p>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                            <span className="text-foreground">Search, review, and manage generated packages</span>
+                        </p>
                     </div>
                     <Button asChild>
                         <Link href="/app">New generation</Link>
@@ -126,7 +128,7 @@ export default function HistoryPage() {
                 </div>
             </header>
 
-            <div className="px-4 py-6 md:px-8 md:py-8">
+            <div className="px-4 py-6 md:px-6 md:py-8 lg:pb-16 max-md:pb-24">
                 <div className="mx-auto w-full max-w-7xl space-y-6">
                     <div className="grid gap-4 md:grid-cols-[1fr_auto]">
                         <div className="relative">

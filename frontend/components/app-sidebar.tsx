@@ -87,7 +87,7 @@ export function AppSidebar() {
     window.localStorage.removeItem("contentai_access_token");
     window.localStorage.removeItem("contentai_user_email");
     setOpen(false);
-    window.location.href = "/login";
+    window.location.href = "/";
   };
 
   const navLinkClasses =
@@ -124,14 +124,6 @@ export function AppSidebar() {
           <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Signed in</div>
           <div className="mt-1 truncate text-sm text-sidebar-foreground">{userEmail}</div>
         </div>
-        <Link
-          href="/"
-          onClick={() => setOpen(false)}
-          className="mb-2 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
-        >
-          <Home className="h-4 w-4" />
-          Back to Home
-        </Link>
         <Link
           href="/app/settings"
           onClick={() => setOpen(false)}

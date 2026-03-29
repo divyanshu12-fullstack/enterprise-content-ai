@@ -161,18 +161,12 @@ export default function ApprovalPage() {
     return (
         <div className="min-h-screen bg-transparent">
             <header className="app-header-glass sticky top-0 z-30 border-b border-border/80">
-                <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-4 py-3 pl-14 md:h-16 md:flex-nowrap md:px-8 md:py-0 md:pl-8">
-                    <div className="flex items-center gap-3">
-                        <Button variant="outline" size="sm" asChild>
-                            <Link href="/app">
-                                <ArrowLeft className="mr-1 h-4 w-4" />
-                                Back
-                            </Link>
-                        </Button>
-                        <div>
-                            <h1 className="text-lg font-semibold tracking-tight md:text-xl">Approval</h1>
-                            <p className="text-sm text-muted-foreground">Review copy, compliance, and visual package</p>
-                        </div>
+                <div className="flex min-h-20 flex-wrap items-center justify-between gap-3 px-4 py-5 pl-14 md:min-h-24 md:flex-nowrap md:px-6 md:py-6 md:pl-6">
+                    <div>
+                        <h1 className="text-lg font-semibold tracking-tight md:text-xl">Approval</h1>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                            <span className="text-foreground">Review copy, compliance, and visual package</span>
+                        </p>
                     </div>
                     <Badge variant="outline" className="border-border bg-card/70 text-muted-foreground">
                         {result.duration}s generation

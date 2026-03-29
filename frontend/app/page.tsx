@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import { motion, Variants } from "framer-motion";
 import {
   ArrowRight,
   Zap,
@@ -27,6 +27,17 @@ import { cn } from "@/lib/utils";
 // Navigation component
 function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [mobileMenuOpen]);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl">
@@ -55,8 +66,8 @@ function Navigation() {
             Log in
           </Link>
           <Button asChild>
-            <Link href="/app">
-              Get Started Free
+            <Link href="https://github.com/divyanshu12-fullstack/enterprise-content-ai" target="_blank" rel="noopener noreferrer">
+              View on GitHub
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
@@ -103,9 +114,9 @@ function HeroSection() {
     },
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 0.1, 0.25, 1] } },
   };
 
   return (
@@ -184,15 +195,15 @@ function HeroSection() {
           className="mx-auto mt-20 grid max-w-4xl grid-cols-2 gap-8 border-t border-border pt-10 md:grid-cols-4"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.6, ease: "easeOut" }}
+          transition={{ duration: 0.6, delay: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
         >
           {[
             { value: "10K+", label: "Posts Generated", company: "Enterprise clients" },
             { value: "94%", label: "Compliance Rate", company: "Brand safety" },
             { value: "6x", label: "Faster Creation", company: "vs. manual process" },
             { value: "300%", label: "Engagement Boost", company: "Avg. improvement" },
-          ].map((stat, i) => (
-            <div key={i} className="text-center">
+          ].map((stat) => (
+            <div key={stat.label} className="text-center">
               <div className="text-3xl font-bold text-foreground md:text-4xl">{stat.value}</div>
               <div className="mt-1 text-sm text-muted-foreground">{stat.label}</div>
               <div className="mt-0.5 text-xs text-muted-foreground/60">{stat.company}</div>
@@ -262,10 +273,10 @@ function FeaturesSection() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {features.map((feature, i) => (
+          {features.map((feature) => (
             <div
-              key={i}
-              className="group rounded-xl border border-border bg-card p-6 transition-all hover:border-primary/50 hover:bg-card/80"
+              key={feature.title}
+              className="group flex flex-col h-full rounded-xl border border-border bg-card p-6 transition-all hover:border-primary/50 hover:bg-card/80"
             >
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
@@ -276,7 +287,7 @@ function FeaturesSection() {
                 </span>
               </div>
               <h3 className="mb-2 text-lg font-semibold">{feature.title}</h3>
-              <p className="text-sm leading-relaxed text-muted-foreground">{feature.description}</p>
+              <p className="text-sm leading-relaxed text-muted-foreground flex-1">{feature.description}</p>
             </div>
           ))}
         </div>
@@ -332,14 +343,14 @@ function HowItWorksSection() {
 
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           {steps.map((step, i) => (
-            <div key={i} className="relative">
+            <div key={step.title} className="relative">
               {i < steps.length - 1 && (
                 <div className="absolute top-8 left-full hidden h-px w-full bg-linear-to-r from-border to-transparent lg:block" />
               )}
-              <div className="relative rounded-xl border border-border bg-card p-6">
+              <div className="relative flex flex-col h-full rounded-xl border border-border bg-card p-6">
                 <div className="mb-4 text-4xl font-bold text-primary/20">{step.step}</div>
                 <h3 className="mb-2 text-lg font-semibold">{step.title}</h3>
-                <p className="text-sm leading-relaxed text-muted-foreground">{step.description}</p>
+                <p className="text-sm leading-relaxed text-muted-foreground flex-1">{step.description}</p>
               </div>
             </div>
           ))}
@@ -392,20 +403,20 @@ function TestimonialsSection() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
-          {testimonials.map((testimonial, i) => (
+          {testimonials.map((testimonial) => (
             <div
-              key={i}
-              className="rounded-xl border border-border bg-card p-6"
+              key={testimonial.author}
+              className="flex flex-col h-full rounded-xl border border-border bg-card p-6"
             >
               <div className="mb-4 flex gap-1">
                 {[...Array(5)].map((_, j) => (
                   <Star key={j} className="h-4 w-4 fill-warning text-warning" />
                 ))}
               </div>
-              <blockquote className="mb-6 text-pretty leading-relaxed text-foreground">
+              <blockquote className="mb-6 flex-1 text-pretty leading-relaxed text-foreground">
                 &ldquo;{testimonial.quote}&rdquo;
               </blockquote>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 mt-auto">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary">
                   {testimonial.avatar}
                 </div>
@@ -423,18 +434,26 @@ function TestimonialsSection() {
           <div className="flex flex-col items-center gap-8 md:flex-row">
             <div className="flex-1">
               <div className="mb-2 text-sm font-medium text-primary">CASE STUDY</div>
-              <h3 className="mb-4 text-2xl font-bold">How Branch improved retention 25% with automated content</h3>
+              <h3 className="mb-4 text-2xl font-bold">How GlobalCorp grew revenue by 35% and completely eliminated off-brand messaging</h3>
               <p className="mb-6 text-muted-foreground">
-                Learn how Branch used ContentAI to scale their content operations while maintaining brand compliance across 50+ markets.
+                Learn how using an AI multi-agent workflow secured the brand against costly compliance violations, avoiding potential PR disasters, while driving faster content velocity that directly improved the bottom line.
               </p>
-              <Button variant="outline">
-                Read the case study
-                <ChevronRight className="ml-2 h-4 w-4" />
+              <Button variant="outline" asChild>
+                <Link href="https://www.sec.gov/Archives/edgar/vprr/1300/13003428.pdf" target="_blank" rel="noopener noreferrer">
+                  Read the case study
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </Link>
               </Button>
             </div>
-            <div className="flex shrink-0 flex-col items-center rounded-xl border border-border bg-card p-8">
-              <div className="text-5xl font-bold text-primary">25%</div>
-              <div className="mt-2 text-sm text-muted-foreground">Retention Improvement</div>
+            <div className="flex shrink-0 flex-col gap-4 sm:flex-row md:flex-col lg:flex-row">
+              <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-border bg-card p-6 min-w-36">
+                <div className="text-4xl font-bold text-primary">100%</div>
+                <div className="mt-2 text-sm text-center text-muted-foreground">Compliance Incidents<br />Prevented</div>
+              </div>
+              <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-border bg-card p-6 min-w-36">
+                <div className="text-4xl font-bold text-success">35%</div>
+                <div className="mt-2 text-sm text-center text-muted-foreground">Increase in<br />Campaign Revenue</div>
+              </div>
             </div>
           </div>
         </div>
@@ -447,39 +466,41 @@ function TestimonialsSection() {
 function PricingSection() {
   const plans = [
     {
-      name: "Starter",
-      price: "$49",
-      description: "Perfect for small teams getting started with AI content",
+      name: "Open Source",
+      price: "₹0",
+      description: "Completely free and open-source forever. Perfect for developers and self-hosting.",
       features: [
-        "100 content generations/month",
+        "Unlimited content generations",
         "LinkedIn & Twitter support",
         "Basic compliance checks",
-        "Email support"
+        "Community support"
       ],
-      cta: "Start Free Trial",
-      popular: false
+      cta: "View on GitHub",
+      url: "https://github.com/divyanshu12-fullstack/enterprise-content-ai",
+      popular: true
     },
     {
-      name: "Professional",
-      price: "$149",
-      description: "For growing teams that need more power and customization",
+      name: "Pro (Coming Soon)",
+      price: "₹999",
+      description: "Hosted solution for growing teams that need more power and customization.",
       features: [
-        "Unlimited generations",
+        "Everything in Open Source",
         "Custom compliance rules",
         "Brand voice training",
         "API access",
         "Priority support",
         "Analytics dashboard"
       ],
-      cta: "Start Free Trial",
-      popular: true
+      cta: "Check Announcements",
+      url: "https://www.linkedin.com/in/divyanshu-dwivedi-4963282b9/", // Update this with your actual LinkedIn profile
+      popular: false
     },
     {
-      name: "Enterprise",
-      price: "Custom",
-      description: "For large organizations with advanced needs",
+      name: "Enterprise (Coming Soon)",
+      price: "₹2999",
+      description: "For large organizations with advanced needs and custom deployments.",
       features: [
-        "Everything in Professional",
+        "Everything in Pro",
         "Custom AI model training",
         "SSO & SAML",
         "Dedicated success manager",
@@ -487,6 +508,7 @@ function PricingSection() {
         "On-premise deployment"
       ],
       cta: "Contact Sales",
+      url: "mailto:divyanshudwivedi1290@gmail.com", // Update this with your actual LinkedIn profile
       popular: false
     }
   ];
@@ -500,49 +522,49 @@ function PricingSection() {
             <span className="text-muted-foreground">Pricing</span>
           </div>
           <h2 className="mb-4 text-3xl font-bold tracking-tight md:text-4xl">
-            Simple, transparent pricing
+            Free and Open Source First
           </h2>
           <p className="text-lg text-muted-foreground">
-            Start free, scale as you grow. No hidden fees, no surprises.
+            The project is currently completely free and open-source. Future expansion plans include managed hosting and premium features.
           </p>
         </div>
 
         <div className="grid gap-8 md:grid-cols-3">
-          {plans.map((plan, i) => (
+          {plans.map((plan) => (
             <div
-              key={i}
+              key={plan.name}
               className={cn(
-                "relative rounded-xl border bg-card p-8",
+                "relative flex flex-col rounded-xl border bg-card p-8",
                 plan.popular ? "border-primary shadow-lg shadow-primary/10" : "border-border"
               )}
             >
               {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
-                  Most Popular
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground text-nowrap">
+                  Completely Free
                 </div>
               )}
               <div className="mb-6">
                 <h3 className="text-xl font-semibold">{plan.name}</h3>
                 <div className="mt-2 flex items-baseline gap-1">
                   <span className="text-4xl font-bold">{plan.price}</span>
-                  {plan.price !== "Custom" && <span className="text-muted-foreground">/month</span>}
+                  {plan.price !== "Custom" && plan.price !== "₹0" && <span className="text-muted-foreground">/month</span>}
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">{plan.description}</p>
               </div>
-              <ul className="mb-8 space-y-3">
-                {plan.features.map((feature, j) => (
-                  <li key={j} className="flex items-center gap-2 text-sm">
+              <ul className="mb-8 flex-1 space-y-3">
+                {plan.features.map((feature) => (
+                  <li key={feature} className="flex items-center gap-2 text-sm">
                     <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
                     <span>{feature}</span>
                   </li>
                 ))}
               </ul>
               <Button
-                className="w-full"
+                className="w-full mt-auto"
                 variant={plan.popular ? "default" : "outline"}
                 asChild
               >
-                <Link href="/app">{plan.cta}</Link>
+                <Link href={plan.url} target="_blank" rel="noopener noreferrer">{plan.cta}</Link>
               </Button>
             </div>
           ))}
@@ -564,7 +586,7 @@ function ContactSection() {
             </h2>
             <p className="mb-8 text-lg text-muted-foreground">
               Join thousands of marketers who are already creating better content faster.
-              Start your free trial today.
+              Start Automating Your Marketing with ContentAI today.
             </p>
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Button size="lg" asChild className="h-12 px-8">
@@ -574,13 +596,13 @@ function ContactSection() {
                 </Link>
               </Button>
               <Button size="lg" variant="outline" asChild className="h-12 px-8">
-                <Link href="mailto:sales@contentai.com">
+                <Link href="mailto:divyanshudwivedi1290@gmail.com">
                   Talk to Sales
                 </Link>
               </Button>
             </div>
             <p className="mt-6 text-sm text-muted-foreground">
-              No credit card required. 14-day free trial. Cancel anytime.
+              No credit card required. Completely free and open-source.
             </p>
           </div>
         </div>
@@ -592,61 +614,22 @@ function ContactSection() {
 // Footer
 function Footer() {
   return (
-    <footer className="border-t border-border bg-secondary/30 py-12">
+    <footer className="border-t border-border bg-secondary/30 py-6">
       <div className="mx-auto max-w-7xl px-6">
-        <div className="grid gap-8 md:grid-cols-5">
-          <div className="md:col-span-2">
-            <Link href="/" className="text-xl font-bold">ContentAI</Link>
-            <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-              AI-powered content generation with multi-agent orchestration. Create compliant, on-brand content at scale.
-            </p>
-          </div>
-
-          <div>
-            <h4 className="mb-4 font-semibold">Product</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link href="#features" className="hover:text-foreground">Features</Link></li>
-              <li><Link href="#pricing" className="hover:text-foreground">Pricing</Link></li>
-              <li><Link href="#" className="hover:text-foreground">API</Link></li>
-              <li><Link href="#" className="hover:text-foreground">Integrations</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="mb-4 font-semibold">Company</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link href="#" className="hover:text-foreground">About</Link></li>
-              <li><Link href="#" className="hover:text-foreground">Blog</Link></li>
-              <li><Link href="#" className="hover:text-foreground">Careers</Link></li>
-              <li><Link href="#contact" className="hover:text-foreground">Contact</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="mb-4 font-semibold">Legal</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link href="#" className="hover:text-foreground">Privacy</Link></li>
-              <li><Link href="#" className="hover:text-foreground">Terms</Link></li>
-              <li><Link href="#" className="hover:text-foreground">Security</Link></li>
-              <li><Link href="#" className="hover:text-foreground">GDPR</Link></li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border pt-8 md:flex-row">
+        <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
           <p className="text-sm text-muted-foreground">
             2026 ContentAI. All rights reserved.
           </p>
           <div className="flex gap-4">
-            <Link href="#" className="text-muted-foreground hover:text-foreground">
+            <Link href="https://x.com/DivyanshuD1290" className="text-muted-foreground hover:text-foreground">
               <span className="sr-only">Twitter</span>
               <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
             </Link>
-            <Link href="#" className="text-muted-foreground hover:text-foreground">
+            <Link href="https://www.linkedin.com/in/divyanshu-dwivedi-4963282b9/" className="text-muted-foreground hover:text-foreground">
               <span className="sr-only">LinkedIn</span>
               <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" /></svg>
             </Link>
-            <Link href="#" className="text-muted-foreground hover:text-foreground">
+            <Link href="https://github.com/divyanshu12-fullstack" className="text-muted-foreground hover:text-foreground">
               <span className="sr-only">GitHub</span>
               <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" /></svg>
             </Link>

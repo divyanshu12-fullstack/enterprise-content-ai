@@ -20,12 +20,6 @@ class SettingsUpsertRequest(BaseModel):
     include_source_urls: bool = True
     auto_generate_image: bool = True
     strict_compliance: bool = True
-    notifications_email: bool = True
-    notifications_push: bool = False
-    notifications_slack: bool = False
-    notifications_on_approval: bool = True
-    notifications_on_rejection: bool = True
-    notifications_weekly_report: bool = True
     custom_blocked_words: list[str] = Field(default_factory=list)
 
 
@@ -67,12 +61,6 @@ def get_settings(
         include_source_urls=settings.include_source_urls,
         auto_generate_image=settings.auto_generate_image,
         strict_compliance=settings.strict_compliance,
-        notifications_email=settings.notifications_email,
-        notifications_push=settings.notifications_push,
-        notifications_slack=settings.notifications_slack,
-        notifications_on_approval=settings.notifications_on_approval,
-        notifications_on_rejection=settings.notifications_on_rejection,
-        notifications_weekly_report=settings.notifications_weekly_report,
         custom_blocked_words=settings.custom_blocked_words,
         has_api_key=bool(settings.encrypted_api_key),
     )
@@ -92,12 +80,6 @@ def upsert_settings(
     settings.include_source_urls = payload.include_source_urls
     settings.auto_generate_image = payload.auto_generate_image
     settings.strict_compliance = payload.strict_compliance
-    settings.notifications_email = payload.notifications_email
-    settings.notifications_push = payload.notifications_push
-    settings.notifications_slack = payload.notifications_slack
-    settings.notifications_on_approval = payload.notifications_on_approval
-    settings.notifications_on_rejection = payload.notifications_on_rejection
-    settings.notifications_weekly_report = payload.notifications_weekly_report
     settings.custom_blocked_words = payload.custom_blocked_words
     settings.updated_at = datetime.now(timezone.utc)
 

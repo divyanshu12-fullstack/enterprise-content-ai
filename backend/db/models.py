@@ -35,13 +35,6 @@ class UserSettings(SQLModel, table=True):
     auto_generate_image: bool = Field(default=True)
     strict_compliance: bool = Field(default=True)
 
-    notifications_email: bool = Field(default=True)
-    notifications_push: bool = Field(default=False)
-    notifications_slack: bool = Field(default=False)
-    notifications_on_approval: bool = Field(default=True)
-    notifications_on_rejection: bool = Field(default=True)
-    notifications_weekly_report: bool = Field(default=True)
-
     custom_blocked_words: list[str] = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
     encrypted_api_key: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
 

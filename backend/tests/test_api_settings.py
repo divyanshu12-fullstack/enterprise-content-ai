@@ -14,12 +14,6 @@ def test_settings_get_update_and_api_key(client: TestClient, auth_headers: dict[
         "include_source_urls": True,
         "auto_generate_image": True,
         "strict_compliance": True,
-        "notifications_email": True,
-        "notifications_push": False,
-        "notifications_slack": False,
-        "notifications_on_approval": True,
-        "notifications_on_rejection": True,
-        "notifications_weekly_report": False,
         "custom_blocked_words": ["risk-free", "guaranteed"],
     }
 

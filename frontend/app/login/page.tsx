@@ -53,14 +53,6 @@ export default function LoginPage() {
         }
     };
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter") {
-            e.preventDefault();
-            const form = e.currentTarget.closest("form");
-            if (form) form.requestSubmit();
-        }
-    };
-
     const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
@@ -106,7 +98,7 @@ export default function LoginPage() {
     const getPwdStrength = (pwd: string) => {
         if (!pwd) return 0;
         if (pwd.length < 6) return 1;
-        if (pwd.length < 10) return 2;
+        if (pwd.length < 8) return 2;
         return 3;
     };
     const pwdStrength = getPwdStrength(password);
@@ -116,9 +108,9 @@ export default function LoginPage() {
             <style dangerouslySetInnerHTML={{
                 __html: `
                 @keyframes button-shimmer {
-                    0% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 rgba(255,255,255,0); }
-                    50% { opacity: 0.95; transform: scale(0.99); box-shadow: 0 0 8px rgba(255,255,255,0.1); }
-                    100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 rgba(255,255,255,0); }
+                    0% { opacity: 1; box-shadow: 0 0 0 rgba(255,255,255,0); }
+                    50% { opacity: 0.95; box-shadow: 0 0 8px rgba(255,255,255,0.1); }
+                    100% { opacity: 1; box-shadow: 0 0 0 rgba(255,255,255,0); }
                 }
                 .btn-shimmer:not(:disabled):hover {
                     animation: button-shimmer 2s ease-in-out infinite;
@@ -145,9 +137,7 @@ export default function LoginPage() {
                             <Hexagon className="h-6 w-6 text-foreground" />
                             <span className="font-heading text-xl font-medium tracking-tight text-foreground">ContentAI</span>
                         </div>
-                        <h2 className="mb-4 text-3xl font-light tracking-tight text-foreground">
-                            Enterprise Content Workspace
-                        </h2>
+
                         <p className="text-muted-foreground">
                             Secure access to generation workflows, compliance approvals, and publishing history.
                         </p>
@@ -209,7 +199,6 @@ export default function LoginPage() {
                                             value={email}
                                             onChange={handleEmailChange}
                                             onBlur={handleEmailBlur}
-                                            onKeyDown={handleKeyDown}
                                             disabled={loading}
                                             autoComplete="email"
                                             aria-describedby={emailError ? "email-error" : undefined}
@@ -231,7 +220,6 @@ export default function LoginPage() {
                                                 minLength={8}
                                                 value={password}
                                                 onChange={handlePasswordChange}
-                                                onKeyDown={handleKeyDown}
                                                 disabled={loading}
                                                 autoComplete={mode === "login" ? "current-password" : "new-password"}
                                                 placeholder="Minimum 8 characters"
@@ -249,8 +237,8 @@ export default function LoginPage() {
                                         {mode === "signup" && (
                                             <div className="mt-2 flex h-1 w-full gap-1">
                                                 <div className={`h-full w-full rounded-full transition-colors ${pwdStrength >= 1 ? "bg-destructive" : "bg-muted"}`} />
-                                                <div className={`h-full w-full rounded-full transition-colors ${pwdStrength >= 2 ? "bg-[var(--warning)]" : "bg-muted"}`} />
-                                                <div className={`h-full w-full rounded-full transition-colors ${pwdStrength >= 3 ? "bg-[var(--success)]" : "bg-muted"}`} />
+                                                <div className={`h-full w-full rounded-full transition-colors ${pwdStrength >= 2 ? "bg-warning" : "bg-muted"}`} />
+                                                <div className={`h-full w-full rounded-full transition-colors ${pwdStrength >= 3 ? "bg-success" : "bg-muted"}`} />
                                             </div>
                                         )}
                                     </div>
@@ -273,7 +261,6 @@ export default function LoginPage() {
                                                         value={confirmPassword}
                                                         onChange={handleConfirmPasswordChange}
                                                         onBlur={handleConfirmPasswordBlur}
-                                                        onKeyDown={handleKeyDown}
                                                         disabled={loading}
                                                         autoComplete="new-password"
                                                         aria-describedby={passwordMismatch ? "confirm-password-error" : undefined}

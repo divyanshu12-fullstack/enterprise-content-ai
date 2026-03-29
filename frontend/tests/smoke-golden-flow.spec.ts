@@ -71,13 +71,13 @@ test("golden flow: login -> generate -> approval -> publish -> history", async (
 
         if (url.pathname === "/api/generate/stream" && method === "POST") {
             const sse = [
-                'event: progress\\ndata: {"stage":"init","message":"Initializing generation pipeline"}\\n\\n',
-                'event: progress\\ndata: {"stage":"research","message":"Gathering market context"}\\n\\n',
-                'event: progress\\ndata: {"stage":"writing","message":"Drafting LinkedIn and Twitter content"}\\n\\n',
-                'event: progress\\ndata: {"stage":"compliance","message":"Applying deterministic compliance checks"}\\n\\n',
-                'event: progress\\ndata: {"stage":"visual","message":"Preparing final visual prompt package"}\\n\\n',
-                'event: result\\ndata: {"linkedin_post":"Enterprise teams can scale AI safely with policy-first execution.","twitter_post":"Policy-first AI delivery improves reliability and trust. #AI #Enterprise","image_prompt":"Modern enterprise command center with ethical AI visuals","compliance_status":"APPROVED","compliance_notes":"Compliant"}\\n\\n',
-                'event: done\\ndata: {}\\n\\n',
+                'event: progress\ndata: {"stage":"init","message":"Initializing generation pipeline"}\n\n',
+                'event: progress\ndata: {"stage":"research","message":"Gathering market context"}\n\n',
+                'event: progress\ndata: {"stage":"writing","message":"Drafting LinkedIn and Twitter content"}\n\n',
+                'event: progress\ndata: {"stage":"compliance","message":"Applying deterministic compliance checks"}\n\n',
+                'event: progress\ndata: {"stage":"visual","message":"Preparing final visual prompt package"}\n\n',
+                'event: result\ndata: {"linkedin_post":"Enterprise teams can scale AI safely with policy-first execution.","twitter_post":"Policy-first AI delivery improves reliability and trust. #AI #Enterprise","image_prompt":"Modern enterprise command center with ethical AI visuals","compliance_status":"APPROVED","compliance_notes":"Compliant"}\n\n',
+                'event: done\ndata: {}\n\n',
             ].join("");
 
             await route.fulfill({
@@ -191,13 +191,21 @@ test("golden flow: login -> generate -> approval -> publish -> history", async (
     await page.getByRole("button", { name: /Need an account/ }).click();
     await expect(page.getByRole("button", { name: /Create account/ })).toBeVisible();
     await page.getByLabel("Email").fill("smoke@example.com");
-    await page.getByLabel("Password").fill("StrongPass123!");
-    await page.getByRole("button", { name: "Create account" }).click();
+    await page.getByLabel("Password", { exact: true }).fill("StrongPass123!");
+    await page.getByLabel("Confirm Password").fill("StrongPass123!");
+    await page.getByRole("button", { name: "Create account" }).click({ force: true });
 
     await expect(page).toHaveURL(/\/app$/);
 
     await page.getByLabel("Topic or narrative").fill("Launch a policy-first AI content workflow");
     await page.getByRole("button", { name: "Professionals" }).click();
+
+    await page.getByRole("combobox").nth(0).click();
+    await page.getByRole("option", { name: "Thought Leadership" }).click();
+
+    await page.getByRole("combobox").nth(1).click();
+    await page.getByRole("option", { name: "Professional" }).click();
+
     await page.getByRole("button", { name: "Generate Content Package" }).click();
 
     await expect(page).toHaveURL(/\/app\/approval\?id=gen-smoke-1/);

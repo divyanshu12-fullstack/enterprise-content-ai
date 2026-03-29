@@ -46,32 +46,52 @@ export default function AppLayout({ children }: { children: React.ReactNode; }) 
 
   if (!ready) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-background/95 backdrop-blur px-6 relative overflow-hidden">
-        {/* Background glow effects */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-125 h-125 bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background/95 px-6 backdrop-blur">
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            @keyframes auth-progress {
+              0% { transform: translateX(-110%); }
+              55% { transform: translateX(10%); }
+              100% { transform: translateX(120%); }
+            }
+            @keyframes auth-breathe {
+              0%, 100% { opacity: 0.4; transform: scale(0.98); }
+              50% { opacity: 0.75; transform: scale(1); }
+            }
+            .auth-progress-track::after {
+              content: "";
+              position: absolute;
+              inset: 0;
+              width: 45%;
+              border-radius: inherit;
+              background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.85), transparent);
+              animation: auth-progress 1.4s ease-in-out infinite;
+            }
+            .auth-breathe {
+              animation: auth-breathe 2.2s ease-in-out infinite;
+            }
+          `,
+        }} />
 
-        <div className="relative flex flex-col items-center gap-6 z-10">
-          <div className="relative">
-            {/* Outer spinning ring */}
-            <div className="absolute inset-0 rounded-full border-2 border-primary/20 border-t-primary animate-spin" style={{ animationDuration: '3s' }} />
-            {/* Middle counter-spinning ring */}
-            <div className="absolute inset-2 rounded-full border-2 border-primary/30 border-b-primary animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }} />
-            {/* Inner pulsing core */}
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center p-4">
-              <div className="w-full h-full bg-primary/40 rounded-full animate-pulse blur-sm" />
-            </div>
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-120 w-120 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-[96px]" />
+
+        <div className="relative z-10 w-full max-w-sm rounded-2xl border border-border/80 bg-card/80 p-6 shadow-2xl">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary auth-breathe">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+            Secure session handoff
           </div>
 
-          <div className="flex flex-col items-center gap-2">
-            <h3 className="text-lg font-medium tracking-tight text-foreground/90">Authenticating</h3>
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <span>Establishing secure connection</span>
-              <span className="flex gap-0.5">
-                <span className="w-1 h-1 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "0ms" }}></span>
-                <span className="w-1 h-1 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "150ms" }}></span>
-                <span className="w-1 h-1 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "300ms" }}></span>
-              </span>
-            </div>
+          <h3 className="text-lg font-semibold tracking-tight text-foreground">Signing you in</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Verifying credentials and preparing your workspace.
+          </p>
+
+          <div className="relative mt-5 h-2 overflow-hidden rounded-full bg-secondary/80 auth-progress-track" />
+
+          <div className="mt-4 grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
+            <div className="rounded-md border border-border/70 bg-background/60 px-2 py-1 text-center">Token</div>
+            <div className="rounded-md border border-border/70 bg-background/60 px-2 py-1 text-center">Session</div>
+            <div className="rounded-md border border-border/70 bg-background/60 px-2 py-1 text-center">Workspace</div>
           </div>
         </div>
       </div>

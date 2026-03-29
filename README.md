@@ -10,14 +10,14 @@ The project is organized as a backend API (FastAPI + SQLModel + CrewAI) and a fr
 - [System Architecture](#system-architecture)
 - [Repository Layout](#repository-layout)
 - [Tech Stack](#tech-stack)
-- [Quick Start (Docker)](#quick-start-docker)
+- [Quick Start (Non-Docker)](#quick-start-non-docker)
 - [Local Development](#local-development)
 - [Configuration and Environment Variables](#configuration-and-environment-variables)
 - [Backend API Reference](#backend-api-reference)
 - [Frontend Routes and User Flows](#frontend-routes-and-user-flows)
 - [Database Model](#database-model)
 - [Testing](#testing)
-- [Deployment Notes](#deployment-notes)
+- [Deployment Notes (Vercel + Render + Managed Postgres)](#deployment-notes-vercel--render--managed-postgres)
 - [Troubleshooting](#troubleshooting)
 - [Known Caveats](#known-caveats)
 - [Contributing](#contributing)
@@ -95,7 +95,6 @@ enterprise-content-ai/
     lib/                # Frontend lib exports
     src/lib/            # API client + zod schemas
     tests/              # Playwright smoke tests
-  docker-compose.yml    # Full stack compose
   changes.md            # Internal audit/change notes
 ```
 
@@ -127,46 +126,71 @@ enterprise-content-ai/
 
 ### Infrastructure
 
-- Docker + Docker Compose
-- Gunicorn + Uvicorn workers (backend container)
+- Vercel (frontend hosting)
+- Render (backend hosting)
+- Managed PostgreSQL (Neon, Supabase, or Render Postgres)
+- Gunicorn + Uvicorn workers (backend process)
 
-## Quick Start (Docker)
+## Quick Start (Non-Docker)
 
 ### 1. Prerequisites
 
-- Docker Desktop
+- Vercel account
+- Render account
+- Managed Postgres account (Neon/Supabase/Render)
 - A valid Gemini API key
+- GitHub repository connected to Vercel and Render
 
-### 2. Set API key
+### 2. Create managed Postgres
 
-From project root:
+- Provision a Postgres database.
+- Copy the connection string and use SQLAlchemy format:
+  - `postgresql+psycopg://...`
+- Ensure SSL is enabled (`sslmode=require`) if your provider requires it.
 
-```bash
-# PowerShell
-$env:GEMINI_API_KEY="your_key_here"
+### 3. Deploy backend on Render
 
-# Bash
-export GEMINI_API_KEY="your_key_here"
-```
-
-### 3. Run the stack
-
-```bash
-docker-compose up --build
-```
-
-Services:
-
-- Frontend: http://localhost:3000
-- Backend: http://localhost:8000
-- Backend health: http://localhost:8000/health
-- Postgres: localhost:5432
-
-### 4. Stop
+- Create a Render Web Service from the `backend` directory.
+- Build command:
 
 ```bash
-docker-compose down
+pip install -r requirements.txt
 ```
+
+- Start command:
+
+```bash
+gunicorn -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 main:app
+```
+
+- Set backend environment variables:
+  - `DATABASE_URL`
+  - `JWT_SECRET`
+  - `ENCRYPTION_KEY`
+  - `GEMINI_API_KEY`
+  - `GEMINI_MODEL`
+  - `ALLOWED_ORIGINS` (set after frontend URL is known)
+
+### 4. Run migrations once
+
+From the `backend` directory against your production database:
+
+```bash
+alembic upgrade head
+```
+
+### 5. Deploy frontend on Vercel
+
+- Create Vercel project from the `frontend` directory.
+- Add frontend environment variable:
+  - `NEXT_PUBLIC_API_BASE_URL=https://your-render-backend-url`
+- Deploy and collect your frontend URL.
+
+### 6. Finalize CORS and verify
+
+- Update backend `ALLOWED_ORIGINS` with your Vercel URL(s).
+- Verify backend health endpoint (`/health`).
+- Verify end-to-end flow: login -> generate -> approval -> history.
 
 ## Local Development
 
@@ -497,13 +521,36 @@ Playwright config behavior:
 - Uses base URL from `PLAYWRIGHT_TEST_BASE_URL` or defaults to `http://localhost:3000`.
 - Smoke test uses request route mocking for deterministic end-to-end flow.
 
-## Deployment Notes
+## Deployment Notes (Vercel + Render + Managed Postgres)
 
-### Docker Compose services
+### Recommended split
 
-- `postgres` (postgres:16-alpine)
-- `backend` (python:3.12-slim, gunicorn+uvicorn)
-- `frontend` (node:20-alpine, Next production build)
+- Frontend: Vercel (Next.js project from `frontend`)
+- Backend: Render Web Service (Python project from `backend`)
+- Database: managed PostgreSQL (Neon, Supabase, or Render Postgres)
+
+### Why this split
+
+- Better support for longer-running requests and SSE streaming than serverless backend hosting.
+- Independent scaling and deploy cycles for frontend/backend.
+- Managed Postgres reliability and backups.
+
+### Backend deploy checklist
+
+- Runtime: Python 3.12
+- Build command: `pip install -r requirements.txt`
+- Start command: `gunicorn -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 main:app`
+- Health endpoint: `/health`
+- Required env vars configured in hosting platform
+- Run `alembic upgrade head` before accepting traffic
+
+### Frontend deploy checklist
+
+- Root directory: `frontend`
+- Install command: `pnpm install`
+- Build command: `pnpm build`
+- Runtime command: `pnpm start` (for self-host) or Vercel default
+- Required env var: `NEXT_PUBLIC_API_BASE_URL`
 
 ### Production hardening checklist
 
@@ -556,6 +603,9 @@ The smoke spec stubs specific API paths; if you changed routes, update `frontend
 1. Legacy frontend code remains under `frontend/src`:
    - Active app uses `frontend/app` routes.
    - Keep this in mind when refactoring import paths and tsconfig includes/excludes.
+
+2. Dockerfiles were intentionally removed for non-Docker deployment:
+  - Existing `docker-compose.yml` is now legacy and will not work unless Dockerfiles are restored.
 
 ## Contributing
 

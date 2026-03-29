@@ -36,7 +36,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { createGeneration, generateContent, generateContentStream, uploadPolicyFile } from "@/lib/api";
+import { createGeneration, generateContent, generateContentStream, getSettings, uploadPolicyFile } from "@/lib/api";
 import type { FinalContentOutput } from "@/lib/schemas";
 import axios from "axios";
 
@@ -141,6 +141,7 @@ export default function GeneratePage() {
     const [errors, setErrors] = useState<{ topic?: string; audience?: string; contentType?: string; tone?: string; }>({});
     const [generationError, setGenerationError] = useState<string | null>(null);
     const [stageElapsed, setStageElapsed] = useState(0);
+    const [hasAssignedApiKey, setHasAssignedApiKey] = useState<boolean | null>(null);
 
     const topicRef = useRef<HTMLTextAreaElement>(null);
 
@@ -155,6 +156,30 @@ export default function GeneratePage() {
             setStageElapsed(0);
         }
     }, [isGenerating, currentStage, generationError]);
+
+    useEffect(() => {
+        let active = true;
+
+        const loadSettings = async () => {
+            try {
+                const settings = await getSettings();
+                if (active) {
+                    setHasAssignedApiKey(settings.has_api_key);
+                }
+            } catch {
+                // Keep pipeline usable if settings fetch fails transiently.
+                if (active) {
+                    setHasAssignedApiKey(true);
+                }
+            }
+        };
+
+        void loadSettings();
+
+        return () => {
+            active = false;
+        };
+    }, []);
 
     const progress = useMemo(() => {
         if (!isGenerating) return 0;
@@ -213,6 +238,14 @@ export default function GeneratePage() {
 
     const handleGenerate = async () => {
         if (!validateForm()) return;
+
+        if (hasAssignedApiKey === false) {
+            toast.error("API key not assigned", {
+                description: "Submit an API key in Settings before generating content.",
+            });
+            router.push("/app/settings");
+            return;
+        }
 
         setIsGenerating(true);
         setCurrentStage(0);
@@ -484,10 +517,22 @@ export default function GeneratePage() {
                                 {renderRightPanel()}
                             </SheetContent>
                         </Sheet>
-                        <Badge variant="outline" className="border-success/30 bg-success/10 text-success gap-1.5 px-2.5 py-1">
-                            <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
-                            Pipeline Ready
-                        </Badge>
+                        {hasAssignedApiKey === false ? (
+                            <button
+                                type="button"
+                                onClick={() => router.push("/app/settings")}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-red-900 bg-red-950 px-2.5 py-1 text-xs font-medium text-red-100 transition-colors hover:border-red-700 hover:bg-red-900/80"
+                                title="API key not assigned. Open Settings to add it before generating."
+                            >
+                                <span className="h-2 w-2 rounded-full bg-red-400 animate-pulse" />
+                                Pipeline not ready: API key not assigned. Submit API key before generating.
+                            </button>
+                        ) : (
+                            <Badge variant="outline" className="border-success/30 bg-success/10 text-success gap-1.5 px-2.5 py-1">
+                                <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
+                                Pipeline Ready
+                            </Badge>
+                        )}
                     </div>
                 </div>
             </header>

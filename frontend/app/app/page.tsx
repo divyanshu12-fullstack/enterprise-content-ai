@@ -137,7 +137,6 @@ export default function GeneratePage() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [currentStage, setCurrentStage] = useState(0);
     const [progressMessage, setProgressMessage] = useState("Reading your brief");
-    const [elapsedTime, setElapsedTime] = useState(0);
     const [errors, setErrors] = useState<{ topic?: string; audience?: string; contentType?: string; tone?: string; }>({});
     const [generationError, setGenerationError] = useState<string | null>(null);
     const [stageElapsed, setStageElapsed] = useState(0);
@@ -164,12 +163,11 @@ export default function GeneratePage() {
             try {
                 const settings = await getSettings();
                 if (active) {
-                    setHasAssignedApiKey(settings.has_api_key);
+                    setHasAssignedApiKey(settings.has_api_key === true);
                 }
             } catch {
-                // Keep pipeline usable if settings fetch fails transiently.
                 if (active) {
-                    setHasAssignedApiKey(true);
+                    setHasAssignedApiKey(false);
                 }
             }
         };
@@ -185,15 +183,6 @@ export default function GeneratePage() {
         if (!isGenerating) return 0;
         return ((currentStage + 1) / pipelineStages.length) * 100;
     }, [isGenerating, currentStage]);
-
-    const readinessScore = useMemo(() => {
-        let score = 0;
-        if (topic.trim().length > 0) score += 40;
-        if (audience) score += 30;
-        if (contentType) score += 15;
-        if (tone) score += 15;
-        return score;
-    }, [topic, audience, contentType, tone]);
 
     const formatTime = (seconds: number) => {
         const m = Math.floor(seconds / 60);
@@ -250,12 +239,8 @@ export default function GeneratePage() {
         setIsGenerating(true);
         setCurrentStage(0);
         setProgressMessage("Reading your brief");
-        setElapsedTime(0);
         setGenerationError(null);
-
-        const timerInterval = setInterval(() => {
-            setElapsedTime((prev) => prev + 1);
-        }, 1000);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
 
         try {
             const started = Date.now();
@@ -270,17 +255,13 @@ export default function GeneratePage() {
             };
 
             let output: FinalContentOutput;
-            try {
-                output = await generateContentStream(payload, (event) => {
-                    setProgressMessage(event.message);
-                    const stageIdx = stageIndexById[event.stage];
-                    if (typeof stageIdx === "number") {
-                        setCurrentStage(stageIdx);
-                    }
-                });
-            } catch {
-                output = await generateContent(payload);
-            }
+            output = await generateContentStream(payload, (event) => {
+                setProgressMessage(event.message);
+                const stageIdx = stageIndexById[event.stage];
+                if (typeof stageIdx === "number") {
+                    setCurrentStage(stageIdx);
+                }
+            });
 
             const record = await createGeneration({
                 topic,
@@ -316,14 +297,10 @@ export default function GeneratePage() {
                 description: errorMsg,
             });
             // Do not reset isGenerating so the error is inline
-        } finally {
-            clearInterval(timerInterval);
         }
     };
 
     const renderRightPanel = () => {
-        const estimatedSeconds = Math.max(0, Math.ceil(((pipelineStages.length - currentStage) * 2600) / 1000) - stageElapsed);
-
         return (
             <div className="space-y-6">
                 {isGenerating ? (
@@ -335,29 +312,22 @@ export default function GeneratePage() {
                                     <CardTitle className="text-xl">Generating Package</CardTitle>
                                     <CardDescription className="mt-1.5">{generationError ? "Pipeline halted" : progressMessage}</CardDescription>
                                 </div>
-                                <div className="rounded-md border border-border bg-secondary/50 px-3 py-1.5 text-sm font-mono text-muted-foreground flex flex-col items-end">
-                                    <span className={cn("text-foreground", isGenerating && !generationError && "text-primary animate-pulse")}>{formatTime(elapsedTime)}</span>
-                                    <span className="text-[10px] opacity-70">/ {formatTime(Math.ceil((pipelineStages.length * 2600) / 1000))}</span>
-                                </div>
                             </div>
                             <div className="flex gap-1 h-2 w-full">
                                 {pipelineStages.map((_, idx) => {
                                     const done = idx < currentStage;
                                     const active = idx === currentStage && !generationError;
+                                    const activePercentage = Math.min((stageElapsed / 2.6) * 100, 100);
                                     return (
                                         <div key={idx} className="h-full flex-1 overflow-hidden rounded-full bg-secondary">
                                             <div
-                                                className={cn("h-full rounded-full transition-[width] ease-linear", done ? "bg-success w-full duration-300" : active ? "bg-primary w-full duration-2600" : "bg-primary w-0 duration-0")}
+                                                className={cn("h-full rounded-full transition-all ease-linear duration-300", done ? "bg-success" : active ? "bg-primary" : "bg-primary")}
+                                                style={{ width: done ? "100%" : active ? `${activePercentage}%` : "0%" }}
                                             />
                                         </div>
                                     );
                                 })}
                             </div>
-                            {!generationError && (
-                                <div className="text-xs text-muted-foreground font-mono mt-1">
-                                    Est. remaining: ~{formatTime(estimatedSeconds)}
-                                </div>
-                            )}
                         </CardHeader>
                         <CardContent className="space-y-3 relative z-10">
                             {generationError ? (
@@ -517,15 +487,20 @@ export default function GeneratePage() {
                                 {renderRightPanel()}
                             </SheetContent>
                         </Sheet>
-                        {hasAssignedApiKey === false ? (
+                        {hasAssignedApiKey === null ? (
+                            <Badge variant="outline" className="border-border bg-muted/50 text-muted-foreground gap-1.5 px-2.5 py-1">
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                                Checking Pipeline
+                            </Badge>
+                        ) : hasAssignedApiKey === false ? (
                             <button
                                 type="button"
                                 onClick={() => router.push("/app/settings")}
-                                className="inline-flex items-center gap-1.5 rounded-full border border-red-900 bg-red-950 px-2.5 py-1 text-xs font-medium text-red-100 transition-colors hover:border-red-700 hover:bg-red-900/80"
+                                className="inline-flex items-center gap-1.5 rounded-full border border-destructive bg-destructive/10 px-2.5 py-1 text-xs font-medium text-destructive transition-colors hover:bg-destructive/20"
                                 title="API key not assigned. Open Settings to add it before generating."
                             >
-                                <span className="h-2 w-2 rounded-full bg-red-400 animate-pulse" />
-                                Pipeline not ready: API key not assigned. Submit API key before generating.
+                                <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
+                                Pipeline Not Ready - Add API Key
                             </button>
                         ) : (
                             <Badge variant="outline" className="border-success/30 bg-success/10 text-success gap-1.5 px-2.5 py-1">
@@ -738,22 +713,6 @@ export default function GeneratePage() {
                                 </div>
 
                                 <div className="sticky z-20 mt-8 rounded-2xl bg-card/80 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-xl border border-border/50" style={{ bottom: "1rem", paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
-                                    <div className="mb-4 space-y-2">
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span className="font-medium text-foreground">Brief completeness</span>
-                                            <span className={cn("font-medium", readinessScore === 100 ? "text-success" : "text-muted-foreground")}>{readinessScore}%</span>
-                                        </div>
-                                        <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
-                                            <div
-                                                className="h-full transition-all duration-500 bg-success"
-                                                style={{ width: `${readinessScore}%` }}
-                                            />
-                                        </div>
-                                        {readinessScore < 100 && (
-                                            <p className="text-xs text-muted-foreground">Complete all required fields to maximize output quality.</p>
-                                        )}
-                                    </div>
-
                                     <Button
                                         className="btn-shimmer relative h-14 w-full text-base font-medium group overflow-hidden"
                                         onClick={handleGenerate}

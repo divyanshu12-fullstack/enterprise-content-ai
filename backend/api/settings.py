@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/settings", tags=["settings"])
 
 
 class SettingsUpsertRequest(BaseModel):
-    selected_model: Literal["gemini-3.1-flash", "gemini-3.1-pro", "gemini-2.5-flash"] = "gemini-3.1-flash"
+    selected_model: Literal["gemini-3-flash-preview", "gemini-3.1-flash-lite-preview", "gemini-3.1-pro-preview", "gemini-2.5-flash"] = "gemini-3-flash-preview"
     auto_retry: bool = True
     max_retries: int = Field(default=2, ge=1, le=10)
     include_source_urls: bool = True

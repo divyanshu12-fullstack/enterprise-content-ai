@@ -18,7 +18,7 @@ def _build_llm(
             "GEMINI_API_KEY is not set. Add it to your environment before running the crew."
         )
 
-    model_name = model_name or os.getenv("GEMINI_MODEL", "gemini-3.1-flash")
+    model_name = model_name or os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
     if not model_name.startswith("gemini/"):
         model_name = f"gemini/{model_name}"
     if temperature is None:

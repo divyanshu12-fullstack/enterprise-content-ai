@@ -61,9 +61,18 @@ export default function LoginPage() {
             return;
         }
 
-        if (mode === "signup" && password !== confirmPassword) {
-            setPasswordMismatch(true);
-            return;
+        if (mode === "signup") {
+            if (password !== confirmPassword) {
+                setPasswordMismatch(true);
+                return;
+            }
+            const hasLower = /[a-z]/.test(password);
+            const hasUpper = /[A-Z]/.test(password);
+            const hasSymbol = /[^a-zA-Z0-9]/.test(password);
+            if (password.length < 8 || !hasLower || !hasUpper || !hasSymbol) {
+                setError("Password must be at least 8 characters long and contain a lowercase letter, uppercase letter, and a symbol.");
+                return;
+            }
         }
 
         setLoading(true);
@@ -97,9 +106,11 @@ export default function LoginPage() {
 
     const getPwdStrength = (pwd: string) => {
         if (!pwd) return 0;
-        if (pwd.length < 6) return 1;
-        if (pwd.length < 8) return 2;
-        return 3;
+        let score = 0;
+        if (pwd.length >= 8) score += 1;
+        if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) score += 1;
+        if (/[^a-zA-Z0-9]/.test(pwd)) score += 1;
+        return score; // Max 3
     };
     const pwdStrength = getPwdStrength(password);
 

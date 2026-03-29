@@ -26,8 +26,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { clearGenerations, getSettings, setApiKey, testApiKey, updateSettings } from "@/lib/api";
 
 const models = [
-    { value: "gemini-3.1-flash", label: "Gemini 3.1 Flash", description: "Fast, newest generation" },
-    { value: "gemini-3.1-pro", label: "Gemini 3.1 Pro", description: "Highest quality, newest generation" },
+    { value: "gemini-3-flash-preview", label: "Gemini 3.1 Flash", description: "Fast, newest generation" },
+    { value: "gemini-3.1-flash-lite-preview", label: "Gemini 3.1 Flash Lite", description: "Fastest and most cost-efficient" },
+    { value: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro", description: "Highest quality, newest generation" },
     { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", description: "Stable fallback for compatibility" },
 ];
 
@@ -36,7 +37,7 @@ const blockedWords = ["guarantee", "promise", "investment advice", "guaranteed r
 export default function SettingsPage() {
     const [apiKey, setApiKeyValue] = useState("");
     const [showApiKey, setShowApiKey] = useState(false);
-    const [selectedModel, setSelectedModel] = useState("gemini-3.1-flash");
+    const [selectedModel, setSelectedModel] = useState("gemini-3-flash-preview");
     const [customBlockedWords, setCustomBlockedWords] = useState("");
     const [isSaving, setIsSaving] = useState(false);
     const [isTestingApiKey, setIsTestingApiKey] = useState(false);
@@ -144,7 +145,7 @@ export default function SettingsPage() {
     };
 
     const handleResetDefaults = () => {
-        setSelectedModel("gemini-3.1-flash");
+        setSelectedModel("gemini-3-flash-preview");
         setGenerationSettings({
             autoRetry: true,
             maxRetries: 2,

@@ -102,7 +102,7 @@ ENCRYPTION_KEY=replace-with-generated-fernet-key
 
 # Optional runtime defaults
 GEMINI_API_KEY=
-GEMINI_MODEL=gemini-3.1-flash
+GEMINI_MODEL=gemini-3-flash-preview
 ACCESS_TOKEN_EXPIRE_MINUTES=60
 ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 DB_AUTO_CREATE=true

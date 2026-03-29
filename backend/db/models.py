@@ -28,12 +28,19 @@ class UserSettings(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     user_id: uuid.UUID = Field(foreign_key="users.id", unique=True, index=True)
 
-    selected_model: str = Field(default="gemini-3.1-flash", max_length=100)
+    selected_model: str = Field(default="gemini-3-flash-preview", max_length=100)
     auto_retry: bool = Field(default=True)
     max_retries: int = Field(default=2, ge=1, le=10)
     include_source_urls: bool = Field(default=True)
     auto_generate_image: bool = Field(default=True)
     strict_compliance: bool = Field(default=True)
+
+    notifications_email: bool = Field(default=True)
+    notifications_push: bool = Field(default=False)
+    notifications_slack: bool = Field(default=False)
+    notifications_on_approval: bool = Field(default=True)
+    notifications_on_rejection: bool = Field(default=True)
+    notifications_weekly_report: bool = Field(default=True)
 
     custom_blocked_words: list[str] = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
     encrypted_api_key: str | None = Field(default=None, sa_column=Column(Text, nullable=True))

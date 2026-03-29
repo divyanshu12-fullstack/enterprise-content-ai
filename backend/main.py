@@ -77,6 +77,13 @@ async def startup() -> None:
     asyncio.create_task(keep_alive_cron())
 
 
+@app.get("/")
+def root() -> dict[str, str]:
+    return {
+        "message": "Welcome to the Enterprise Content AI Backend API",
+        "docs_url": "/docs"
+    }
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {

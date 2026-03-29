@@ -1,633 +1,280 @@
-# Enterprise Content AI
+# Draftly
 
-Enterprise Content AI is a full-stack, multi-agent content generation platform for enterprise teams. It creates social-ready content packages (LinkedIn post, Twitter/X post, image prompt), enforces policy checks, and tracks generation history with approval and publishing actions.
+Draftly is a full-stack application for generating policy-aware marketing content with an approval workflow.
 
-The project is organized as a backend API (FastAPI + SQLModel + CrewAI) and a frontend app (Next.js + TypeScript + Tailwind + Playwright).
+It combines:
 
-## Table of Contents
+- A FastAPI backend for auth, generation, settings, and generation lifecycle APIs.
+- A Next.js frontend for drafting, reviewing, and publishing content.
+- A multi-step generation pipeline with compliance checks and policy-file ingestion.
+- Per-user runtime settings (model, retries, compliance behavior, blocked words).
+- Policy upload and text extraction from TXT, PDF, and DOCX files.
+- Generation history, filtering, metrics, and lifecycle actions (approve, reject, publish).
 
-- [What You Get](#what-you-get)
-- [System Architecture](#system-architecture)
-- [Repository Layout](#repository-layout)
-- [Tech Stack](#tech-stack)
-- [Quick Start (Non-Docker)](#quick-start-non-docker)
-- [Local Development](#local-development)
-- [Configuration and Environment Variables](#configuration-and-environment-variables)
-- [Backend API Reference](#backend-api-reference)
-- [Frontend Routes and User Flows](#frontend-routes-and-user-flows)
-- [Database Model](#database-model)
-- [Testing](#testing)
-- [Deployment Notes (Vercel + Render + Managed Postgres)](#deployment-notes-vercel--render--managed-postgres)
-- [Troubleshooting](#troubleshooting)
-- [Known Caveats](#known-caveats)
-- [Contributing](#contributing)
+- Content generation for:
 
-## What You Get
+- LinkedIn post
+- Twitter/X post
+- Image prompt
+- Optional streaming generation with server-sent events (SSE).
 
-- Multi-agent content pipeline:
-  - Research agent gathers market context.
-  - Writer agent drafts LinkedIn and Twitter/X content.
-  - Governance agent applies compliance checks.
-  - Visual agent generates image prompt guidance.
-- Deterministic compliance checks:
-  - Banned term scanning.
-  - Twitter length enforcement (<= 280 chars).
-  - Strict approved/rejected decision and notes.
-- Auth and user settings:
-  - Signup/login with JWT.
-  - User-specific model and behavior settings.
-  - Encrypted per-user Gemini API key support.
-- Content operations:
-  - Save each generation to history.
-  - View metrics (pass rate, rejection rate, median duration).
-  - Approve, reject, publish, delete, and clear records.
-- Policy file ingestion:
-  - Upload TXT/PDF/DOCX policy docs.
-  - Parse and pass policy text into generation pipeline.
-- Streaming generation:
-  - Server-Sent Events (SSE) for live progress updates.
-
-## System Architecture
-
-```text
-+-----------------------+        HTTP/SSE         +-----------------------------+
-| Next.js Frontend      | <---------------------> | FastAPI Backend             |
-| app/, components/     |                         | api/, crew/, db/            |
-+-----------------------+                         +-----------------------------+
-                                                          |
-                                                          | SQLAlchemy/SQLModel
-                                                          v
-                                                 +-----------------------------+
-                                                 | PostgreSQL                  |
-                                                 | users, user_settings,       |
-                                                 | generations                 |
-                                                 +-----------------------------+
-
-Pipeline (backend /api/generate):
-Input -> CrewAI Research -> Writer -> Governance -> Visual -> Deterministic Compliance -> Final JSON
-```
-
-### Runtime Flow
-
-1. User logs in or signs up.
-2. User submits brief fields (topic, audience, content type, tone, context, optional policy text).
-3. Frontend calls `/api/generate/stream` (fallback to `/api/generate` if needed).
-4. Backend runs CrewAI tasks and emits progress events.
-5. Frontend persists result via `/api/generations`.
-6. User reviews in approval screen and can publish/reject.
-7. User audits results in history and metrics dashboards.
-
-## Repository Layout
-
-```text
-enterprise-content-ai/
-  backend/
-    api/                # Auth, generation, settings, policies, history APIs
-    crew/               # Agents, tasks, pipeline orchestration, compliance
-    db/                 # Config, models, session, security
-    alembic/            # DB migration scaffolding
-    tests/              # Backend pytest suite
-    main.py             # FastAPI app entrypoint
-  frontend/
-    app/                # Next.js app router pages
-    components/         # UI components
-    hooks/              # Reusable hooks
-    lib/                # Frontend lib exports
-    src/lib/            # API client + zod schemas
-    tests/              # Playwright smoke tests
-  changes.md            # Internal audit/change notes
-```
-
-## Tech Stack
+## Stack
 
 ### Backend
 
-- Python 3.12
+- Python 3.12+
 - FastAPI
 - SQLModel + SQLAlchemy
-- PostgreSQL (psycopg)
-- Alembic
-- CrewAI
-- Gemini via CrewAI LLM adapter
-- JWT auth (python-jose)
-- Fernet encryption (cryptography)
-- Passlib password hashing
-- PyPDF + python-docx for policy parsing
+- PostgreSQL (production/local) and SQLite in tests
+- Alembic (migrations support)
+- CrewAI and Gemini integration
 
 ### Frontend
 
 - Next.js 16 (App Router)
 - React 19 + TypeScript
 - Tailwind CSS
-- Radix UI + shadcn-style components
-- Axios + fetch (SSE)
-- Zod schemas
-- Playwright E2E smoke tests
+- Axios + Fetch (SSE stream consumption)
+- Playwright smoke test coverage
 
-### Infrastructure
+## Repository Layout
 
-- Vercel (frontend hosting)
-- Render (backend hosting)
-- Managed PostgreSQL (Neon, Supabase, or Render Postgres)
-- Gunicorn + Uvicorn workers (backend process)
-
-## Quick Start (Non-Docker)
-
-### 1. Prerequisites
-
-- Vercel account
-- Render account
-- Managed Postgres account (Neon/Supabase/Render)
-- A valid Gemini API key
-- GitHub repository connected to Vercel and Render
-
-### 2. Create managed Postgres
-
-- Provision a Postgres database.
-- Copy the connection string and use SQLAlchemy format:
-  - `postgresql+psycopg://...`
-- Ensure SSL is enabled (`sslmode=require`) if your provider requires it.
-
-### 3. Deploy backend on Render
-
-- Create a Render Web Service from the `backend` directory.
-- Build command:
-
-```bash
-pip install -r requirements.txt
+```text
+enterprise-content-ai/
+  backend/
+    api/
+    crew/
+    db/
+    tests/
+    alembic/
+    main.py
+    requirements.txt
+  frontend/
+    app/
+      app/
+      login/
+    components/
+    hooks/
+    lib/
+    tests/
+    package.json
+  README.md
 ```
 
-- Start command:
+## Local Setup
 
-```bash
-gunicorn -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 main:app
-```
-
-- Set backend environment variables:
-  - `DATABASE_URL`
-  - `JWT_SECRET`
-  - `ENCRYPTION_KEY`
-  - `GEMINI_API_KEY`
-  - `GEMINI_MODEL`
-  - `ALLOWED_ORIGINS` (set after frontend URL is known)
-
-### 4. Run migrations once
-
-From the `backend` directory against your production database:
-
-```bash
-alembic upgrade head
-```
-
-### 5. Deploy frontend on Vercel
-
-- Create Vercel project from the `frontend` directory.
-- Add frontend environment variable:
-  - `NEXT_PUBLIC_API_BASE_URL=https://your-render-backend-url`
-- Deploy and collect your frontend URL.
-
-### 6. Finalize CORS and verify
-
-- Update backend `ALLOWED_ORIGINS` with your Vercel URL(s).
-- Verify backend health endpoint (`/health`).
-- Verify end-to-end flow: login -> generate -> approval -> history.
-
-## Local Development
-
-### Prerequisites
+### 1) Prerequisites
 
 - Python 3.12+
-- Node 20+
-- pnpm
-- PostgreSQL 16+
+- Node.js 20+
+- npm 10+
+- PostgreSQL 15+ (for local dev unless you use a hosted instance)
 
-### Backend setup
+### 2) Backend Setup
 
 ```bash
 cd backend
 python -m venv .venv
+```
 
-# Windows PowerShell
+Activate virtual environment:
+
+```powershell
 .\.venv\Scripts\Activate.ps1
+```
 
-# Bash
+```bash
 source .venv/bin/activate
+```
 
+Install dependencies:
+
+```bash
 pip install -r requirements.txt
 ```
 
-Create environment variables (see full matrix below).
+Create `backend/.env`:
 
-Recommended run command:
+```env
+DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/enterprise_content_ai
+JWT_SECRET=replace-with-strong-secret
+ENCRYPTION_KEY=replace-with-generated-fernet-key
 
-```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+# Optional runtime defaults
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-3.1-flash
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+DB_AUTO_CREATE=true
 ```
 
-Notes:
-
-- `main.py` validates required env vars on startup and auto-initializes DB tables via SQLModel metadata.
-- You can still use Alembic, but see caveat in [Known Caveats](#known-caveats).
-
-### Frontend setup
-
-```bash
-cd frontend
-pnpm install
-pnpm dev
-```
-
-Frontend runs at http://localhost:3000.
-
-## Configuration and Environment Variables
-
-### Backend required variables
-
-| Variable | Required | Default | Description |
-|---|---:|---|---|
-| `DATABASE_URL` | Yes | None | SQLAlchemy URL. Example: `postgresql+psycopg://user:pass@localhost:5432/contentai_db` |
-| `JWT_SECRET` | Yes | None | JWT signing secret |
-| `ENCRYPTION_KEY` | Yes | None | Fernet key (base64-url-safe 32-byte key) |
-
-### Backend optional variables
-
-| Variable | Required | Default | Description |
-|---|---:|---|---|
-| `GEMINI_API_KEY` | No* | None | Global API key used when user key is absent |
-| `GEMINI_MODEL` | No | `gemini-3.1-flash` | Default model |
-| `GEMINI_TEMPERATURE` | No | `0.2` | LLM temperature |
-| `ALLOWED_ORIGINS` | No | `http://localhost:3000,http://127.0.0.1:3000` | CORS allowlist |
-| `DB_AUTO_CREATE` | No | `true` | Kept for compatibility; app initializes tables on startup |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | No | `60` | JWT expiration |
-
-\* Generation can also use a per-user encrypted API key from settings.
-
-Generate Fernet key once:
+Generate `ENCRYPTION_KEY`:
 
 ```bash
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-### Frontend variables
+Run backend:
 
-| Variable | Required | Default | Description |
-|---|---:|---|---|
-| `NEXT_PUBLIC_API_BASE_URL` | No | `http://localhost:8000` | Backend base URL for browser requests |
-| `PLAYWRIGHT_TEST_BASE_URL` | No | `http://localhost:3000` | Base URL used by Playwright config |
-
-## Backend API Reference
-
-All backend routes are mounted under these groups:
-
-- `/api/auth`
-- `/api`
-- `/api/settings`
-- `/api/generations`
-- `/api/policies`
-
-Health endpoint:
-
-- `GET /health`
-
-## Authentication
-
-### POST /api/auth/signup
-
-Create a user account.
-
-Request:
-
-```json
-{
-  "email": "user@example.com",
-  "password": "StrongPass123!"
-}
+```bash
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Response:
+Health check:
 
-```json
-{
-  "access_token": "...",
-  "token_type": "bearer",
-  "user_id": "uuid",
-  "email": "user@example.com"
-}
+- `GET http://localhost:8000/health`
+
+### 3) Frontend Setup
+
+```bash
+cd frontend
+npm install
 ```
 
-### POST /api/auth/login
+Create `frontend/.env.local`:
 
-Authenticate existing user.
-
-### GET /api/auth/me
-
-Get active user profile (requires bearer token).
-
-## Content Generation
-
-### POST /api/generate
-
-Synchronous generation.
-
-Request fields:
-
-- `topic` (required, 3..300)
-- `audience` (required, 2..120)
-- `content_type` (optional)
-- `tone` (optional)
-- `additional_context` (optional)
-- `policy_text` (optional)
-
-Response:
-
-```json
-{
-  "linkedin_post": "...",
-  "twitter_post": "...",
-  "image_prompt": "...",
-  "compliance_status": "APPROVED",
-  "compliance_notes": "Passed deterministic compliance checks."
-}
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+PLAYWRIGHT_TEST_BASE_URL=http://localhost:3000
 ```
 
-Authentication:
+Run frontend:
 
-- Optional. If provided and valid, user settings override runtime defaults.
-
-### POST /api/generate/stream
-
-Streaming generation with SSE events.
-
-Event types:
-
-- `progress` -> stage updates
-- `result` -> final payload
-- `error` -> validation/pipeline error object
-- `done` -> stream complete
-
-Sample event stream block:
-
-```text
-event: progress
-data: {"stage":"research","message":"Gathering market context"}
-
-event: result
-data: {"linkedin_post":"...","twitter_post":"...","image_prompt":"...","compliance_status":"APPROVED","compliance_notes":"..."}
-
-event: done
-data: {}
+```bash
+npm run dev
 ```
 
-## Settings
+App URL:
 
-Requires authentication.
+- `http://localhost:3000`
 
-- `GET /api/settings`
-- `PUT /api/settings`
-- `PUT /api/settings/api-key`
-- `POST /api/settings/test-api-key`
+### 4) First Run Flow
 
-Model values accepted by API:
+1. Open `http://localhost:3000/login`.
+2. Sign up a new user.
+3. Go to the app workspace.
+4. Optionally save your provider API key in Settings.
+5. Run a generation request.
+6. Approve/reject/publish from history or approval views.
 
-- `gemini-3.1-flash`
-- `gemini-3.1-pro`
-- `gemini-2.5-flash`
+## Configuration Reference
 
-## Generations and Metrics
+### Backend Environment Variables
 
-Requires authentication.
+| Variable                        | Required | Description                                   |
+| ------------------------------- | -------- | --------------------------------------------- |
+| `DATABASE_URL`                | Yes      | SQLAlchemy connection URL.                    |
+| `JWT_SECRET`                  | Yes      | JWT signing key.                              |
+| `ENCRYPTION_KEY`              | Yes      | Fernet key used to encrypt stored API keys.   |
+| `GEMINI_API_KEY`              | No       | Optional global model API key fallback.       |
+| `GEMINI_MODEL`                | No       | Default model name.                           |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | No       | Access token lifetime in minutes.             |
+| `ALLOWED_ORIGINS`             | No       | Comma-separated CORS origins.                 |
+| `DB_AUTO_CREATE`              | No       | Compatibility toggle for startup DB behavior. |
 
-- `POST /api/generations` (create record)
-- `GET /api/generations` (list with `status`, `search`, `limit`, `offset`)
-- `GET /api/generations/metrics`
-- `GET /api/generations/{generation_id}`
-- `DELETE /api/generations/{generation_id}`
-- `DELETE /api/generations` (clear all)
-- `POST /api/generations/{generation_id}/approve`
-- `POST /api/generations/{generation_id}/reject`
-- `POST /api/generations/{generation_id}/publish`
+### Frontend Environment Variables
 
-## Policy Upload
+| Variable                     | Required | Description                                      |
+| ---------------------------- | -------- | ------------------------------------------------ |
+| `NEXT_PUBLIC_API_BASE_URL` | Yes      | Base URL for backend API calls.                  |
+| `PLAYWRIGHT_TEST_BASE_URL` | No       | Base URL used by Playwright webServer and tests. |
 
-Requires authentication.
+## API Overview
 
-- `POST /api/policies/upload` with `multipart/form-data`
-- Field name: `file`
-- Supported extensions: `.txt`, `.pdf`, `.docx`
+### Auth (`/api/auth`)
+
+- `POST /signup`
+- `POST /login`
+- `GET /me`
+
+### Generation (`/api`)
+
+- `POST /generate`
+- `POST /generate/stream` (SSE events: `progress`, `result`, `error`, `done`)
+
+### Settings (`/api/settings`)
+
+- `GET /`
+- `PUT /`
+- `PUT /api-key`
+- `POST /test-api-key`
+
+### Generations (`/api/generations`)
+
+- `POST /`
+- `GET /`
+- `GET /metrics`
+- `GET /{generation_id}`
+- `DELETE /{generation_id}`
+- `DELETE /`
+- `POST /{generation_id}/approve`
+- `POST /{generation_id}/reject`
+- `POST /{generation_id}/publish`
+
+### Policies (`/api/policies`)
+
+- `POST /upload`
 - Max upload size: 5 MB
-- Returned policy text is truncated to 15000 characters if longer
+- Extracted policy text is capped at 15,000 characters
 
-## Frontend Routes and User Flows
+## Frontend Routes
 
-Primary routes in `frontend/app`:
+- `/login`
+- `/app`
+- `/app/approval`
+- `/app/history`
+- `/app/settings`
 
-- `/` -> marketing landing page
-- `/login` -> login/signup
-- `/app` -> generation form and pipeline progress
-- `/app/approval?id=<id>` -> review and publish/reject
-- `/app/history` -> search and manage previous generations
-- `/app/settings` -> model, policy, key, behavior settings
+## Test and Validation
 
-### Main flow
-
-1. User signs in on `/login`.
-2. User creates a brief on `/app`.
-3. Frontend calls stream generation, then saves result record.
-4. User reviews on `/app/approval` and can publish or reject.
-5. User tracks outcomes in `/app/history` and `/app/settings`.
-
-## Database Model
-
-Current SQLModel entities:
-
-- `users`
-- `user_settings`
-- `generations`
-
-### users
-
-- `id` (UUID PK)
-- `email` (unique)
-- `password_hash`
-- `is_active`
-- `created_at`
-- `updated_at`
-
-### user_settings
-
-- `id` (UUID PK)
-- `user_id` (1:1 with users)
-- `selected_model`
-- `auto_retry`
-- `max_retries`
-- `include_source_urls`
-- `auto_generate_image`
-- `strict_compliance`
-- `custom_blocked_words` (JSON array)
-- `encrypted_api_key` (text)
-- `created_at`
-- `updated_at`
-
-### generations
-
-- `id` (UUID PK)
-- `user_id`
-- Input fields: `topic`, `audience`, `content_type`, `tone`, `additional_context`
-- Output fields: `linkedin_post`, `twitter_post`, `image_prompt`
-- Review fields: `compliance_status`, `compliance_notes`, `status`
-- Runtime fields: `error_message`, `duration_ms`
-- Timestamps: `created_at`, `completed_at`
-
-## Testing
-
-### Backend tests (pytest)
-
-From `backend`:
+### Backend tests
 
 ```bash
-pytest
+cd backend
+pytest -q
 ```
 
-Helpful variants:
+### Frontend lint
 
 ```bash
-pytest -v
-pytest tests/test_api_auth.py
-pytest tests/test_api_generate.py
-pytest tests/test_deterministic_compliance.py
+cd frontend
+npm run lint
 ```
 
-What is covered:
-
-- auth endpoints
-- generation endpoint behavior
-- settings endpoints
-- generation history endpoints
-- request/schema validation
-- deterministic compliance logic
-- policy ingestion parser
-
-### Frontend tests (Playwright)
-
-From `frontend`:
+### Frontend production build
 
 ```bash
-pnpm test:smoke
+cd frontend
+npm run build
 ```
 
-Playwright config behavior:
+### Playwright smoke tests
 
-- Starts local dev server if needed.
-- Uses base URL from `PLAYWRIGHT_TEST_BASE_URL` or defaults to `http://localhost:3000`.
-- Smoke test uses request route mocking for deterministic end-to-end flow.
-
-## Deployment Notes (Vercel + Render + Managed Postgres)
-
-### Recommended split
-
-- Frontend: Vercel (Next.js project from `frontend`)
-- Backend: Render Web Service (Python project from `backend`)
-- Database: managed PostgreSQL (Neon, Supabase, or Render Postgres)
-
-### Why this split
-
-- Better support for longer-running requests and SSE streaming than serverless backend hosting.
-- Independent scaling and deploy cycles for frontend/backend.
-- Managed Postgres reliability and backups.
-
-### Backend deploy checklist
-
-- Runtime: Python 3.12
-- Build command: `pip install -r requirements.txt`
-- Start command: `gunicorn -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 main:app`
-- Health endpoint: `/health`
-- Required env vars configured in hosting platform
-- Run `alembic upgrade head` before accepting traffic
-
-### Frontend deploy checklist
-
-- Root directory: `frontend`
-- Install command: `pnpm install`
-- Build command: `pnpm build`
-- Runtime command: `pnpm start` (for self-host) or Vercel default
-- Required env var: `NEXT_PUBLIC_API_BASE_URL`
-
-### Production hardening checklist
-
-- Set strong `JWT_SECRET`.
-- Generate secure `ENCRYPTION_KEY`.
-- Set restrictive `ALLOWED_ORIGINS`.
-- Use managed Postgres with TLS.
-- Add rate limiting/reverse proxy.
-- Configure secrets via vault or platform secret manager.
-- Add centralized logging and monitoring.
+```bash
+cd frontend
+npm run test:smoke
+```
 
 ## Troubleshooting
 
-### Backend fails at startup with env errors
+### 1) Password hashing errors mentioning `bcrypt`
 
-Ensure all required env vars are set:
+The backend currently uses `pbkdf2_sha256` through Passlib. If your environment still pulls in conflicting bcrypt behavior, recreate the environment and reinstall backend dependencies.
 
-- `DATABASE_URL`
-- `JWT_SECRET`
-- `ENCRYPTION_KEY`
+### 2) Playwright cannot connect to the app
 
-### "GEMINI_API_KEY is not set"
+Keep hostnames consistent between web server URL and test base URL (for example, use `localhost` for both instead of mixing `localhost` and `127.0.0.1`).
 
-Generation requires either:
+### 3) `playwright` command not found on Windows
 
-- global `GEMINI_API_KEY`, or
-- authenticated user with encrypted API key stored in settings.
+Run tests with `npm run test:smoke` or `npx playwright test` from `frontend`.
 
-### CORS issues in browser
+### 4) Backend starts but requests fail with CORS
 
-Set `ALLOWED_ORIGINS` to include your frontend origin exactly.
+Add your frontend origin to `ALLOWED_ORIGINS` in `backend/.env`.
 
-### Policy upload fails
+## Security Notes
 
-Check file type and size:
-
-- only txt/pdf/docx
-- max 5 MB
-
-### Frontend cannot reach backend
-
-Set `NEXT_PUBLIC_API_BASE_URL` to your backend URL and restart frontend dev server.
-
-### Playwright smoke fails due API mismatch
-
-The smoke spec stubs specific API paths; if you changed routes, update `frontend/tests/smoke-golden-flow.spec.ts` accordingly.
-
-## Known Caveats
-
-1. Legacy frontend code remains under `frontend/src`:
-   - Active app uses `frontend/app` routes.
-   - Keep this in mind when refactoring import paths and tsconfig includes/excludes.
-
-2. Dockerfiles were intentionally removed for non-Docker deployment:
-  - Existing `docker-compose.yml` is now legacy and will not work unless Dockerfiles are restored.
-
-## Contributing
-
-Suggested workflow:
-
-1. Create a feature branch.
-2. Keep backend and frontend changes scoped and tested.
-3. Run backend pytest and frontend smoke tests before opening PR.
-4. Document API contract changes in this README.
-5. If DB schema changes, update both SQLModel and Alembic migration scripts coherently.
-
-Recommended quality checks:
-
-```bash
-# frontend
-pnpm lint
-pnpm test:smoke
-
-# backend
-pytest -v
-```
-
-## Final Notes
-
-This README reflects the current integrated state of the repository and backend/frontend behavior visible in source code. If you add providers, expand compliance policy logic, or change API contracts, update this document in the same PR to keep onboarding and operations reliable.
+- Never commit `.env` files or secrets.
+- Rotate `JWT_SECRET` and provider keys periodically.
+- Use HTTPS and secure cookie/token handling in production environments.

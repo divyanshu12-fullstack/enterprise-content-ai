@@ -95,6 +95,10 @@ venv.bak/
 .mypy_cache/
 .ruff_cache/
 
+# Keep frontend application modules versioned.
+!frontend/lib/
+!frontend/lib/**
+
 # =========================
 # Java / C++ / General Compiled
 # =========================

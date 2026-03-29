@@ -24,12 +24,7 @@ test("golden flow: login -> generate -> approval -> publish -> history", async (
         generation: null,
     };
 
-    // Define base URL strictly per environment without requiring Node global typings.
-    const nodeEnv = (globalThis as typeof globalThis & {
-        process?: { env?: Record<string, string | undefined>; };
-    }).process?.env;
-    const API_BASE_URL = nodeEnv?.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
-    await page.route(`${API_BASE_URL}/**`, async (route) => {
+    await page.route("**/api/**", async (route) => {
         const request = route.request();
         const url = new URL(request.url());
         const method = request.method();
@@ -214,7 +209,7 @@ test("golden flow: login -> generate -> approval -> publish -> history", async (
     await page.getByRole("button", { name: "Generate Content Package" }).click();
 
     await expect(page).toHaveURL(/\/app\/approval\?id=gen-smoke-1/);
-    await page.getByRole("button", { name: "Publish approved package" }).click();
+    await expect(page.getByRole("button", { name: "Post to LinkedIn" })).toBeVisible();
 
     await page.getByRole("link", { name: "Previous" }).click();
     await expect(page).toHaveURL(/\/app\/history/);

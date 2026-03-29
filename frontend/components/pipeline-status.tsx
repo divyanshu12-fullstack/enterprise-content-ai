@@ -2,139 +2,155 @@
 
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
-import { Search, PenTool, Shield, ImageIcon, CheckCircle2 } from "lucide-react"
+import { CheckCircle2, Loader2, Lock } from "lucide-react"
 
-const pipelineStages = [
+const agents = [
   {
     id: "research",
-    name: "Researcher Agent",
-    description: "Gathering market trends and data...",
-    icon: Search,
+    title: "Research Agent",
+    subtitle: "Research signals",
   },
   {
-    id: "writing",
-    name: "Writer Agent",
-    description: "Crafting compelling content...",
-    icon: PenTool,
+    id: "writer",
+    title: "Writer Agent",
+    subtitle: "Write platform drafts",
   },
   {
-    id: "compliance",
-    name: "Brand Governance Agent",
-    description: "Reviewing compliance rules...",
-    icon: Shield,
+    id: "governance",
+    title: "Governance Agent",
+    subtitle: "Compliance checks",
   },
   {
     id: "visual",
-    name: "Visual Agent",
-    description: "Generating image prompts...",
-    icon: ImageIcon,
-  },
-  {
-    id: "complete",
-    name: "Pipeline Complete",
-    description: "All agents finished processing",
-    icon: CheckCircle2,
+    title: "Visual Agent",
+    subtitle: "Visual prompt generation",
   },
 ]
 
 interface PipelineStatusProps {
-  isRunning: boolean
-  currentStage?: number
+  isRunning: boolean;
+  currentStage: number;
 }
 
-export function PipelineStatus({ isRunning, currentStage = 0 }: PipelineStatusProps) {
-  const [displayStage, setDisplayStage] = useState(0)
-  const [dots, setDots] = useState("")
+export function PipelineStatus({ isRunning, currentStage }: PipelineStatusProps) {
+  const [stageTimes, setStageTimes] = useState<number[]>(agents.map(() => 0))
 
   useEffect(() => {
     if (!isRunning) {
-      setDisplayStage(0)
+      setStageTimes(agents.map(() => 0))
       return
     }
 
-    const stageInterval = setInterval(() => {
-      setDisplayStage((prev) => {
-        if (prev < pipelineStages.length - 1) {
-          return prev + 1
-        }
-        return prev
+    if (currentStage >= agents.length) return;
+
+    const timer = setInterval(() => {
+      setStageTimes((prev) => {
+        const newTimes = [...prev]
+        newTimes[currentStage] += 1
+        return newTimes
       })
-    }, 3000)
+    }, 1000)
 
-    return () => clearInterval(stageInterval)
-  }, [isRunning])
-
-  useEffect(() => {
-    if (!isRunning) {
-      setDots("")
-      return
-    }
-
-    const dotsInterval = setInterval(() => {
-      setDots((prev) => (prev.length >= 3 ? "" : prev + "."))
-    }, 500)
-
-    return () => clearInterval(dotsInterval)
-  }, [isRunning])
-
-  const currentStageData = pipelineStages[currentStage ?? displayStage]
-  const Icon = currentStageData.icon
+    return () => clearInterval(timer)
+  }, [isRunning, currentStage])
 
   if (!isRunning) return null
 
+  const isComplete = currentStage >= agents.length
+  const currentActionText = isComplete ? "Generation complete" : agents[currentStage]?.subtitle || "Finalizing..."
+
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
-      <div className="flex items-center gap-4">
-        <div className="relative">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/20">
-            <Icon className="h-7 w-7 text-primary" />
-          </div>
-          <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-            {(currentStage ?? displayStage) + 1}
-          </span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+      <div className="w-full max-w-2xl rounded-2xl border border-zinc-800/60 bg-[#0a0a0a] p-8 shadow-2xl">
+        
+        {/* Header Section */}
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold tracking-tight text-white mb-1">Generating Package</h2>
+          <p className="text-sm text-zinc-400">{currentActionText}</p>
         </div>
-        <div className="flex-1">
-          <h3 className="font-semibold text-foreground">
-            {currentStageData.name}
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            {currentStageData.description}
-            {isRunning && dots}
-          </p>
+
+        {/* Progress Bars */}
+        <div className="flex gap-2 mb-8">
+          {agents.map((_, idx) => {
+            const completed = idx < currentStage
+            const current = idx === currentStage
+            return (
+              <div key={idx} className="h-2 flex-1 rounded-full bg-zinc-800 overflow-hidden">
+                <div 
+                  className={cn(
+                    "h-full rounded-full transition-all duration-500",
+                    completed ? "bg-[#4ade80]" : current ? "bg-white" : "bg-transparent"
+                  )}
+                  style={{ width: completed || current ? "100%" : "0%" }}
+                />
+              </div>
+            )
+          })}
         </div>
-      </div>
 
-      {/* Progress indicators */}
-      <div className="mt-6 flex items-center gap-2">
-        {pipelineStages.slice(0, -1).map((stage, index) => {
-          const stageIndex = currentStage ?? displayStage
-          const isComplete = index < stageIndex
-          const isCurrent = index === stageIndex
-          const StageIcon = stage.icon
+        {/* Agents List */}
+        <div className="space-y-3">
+          {agents.map((agent, index) => {
+            const isActive = index === currentStage
+            const isFinished = index < currentStage
 
-          return (
-            <div key={stage.id} className="flex flex-1 items-center gap-2">
+            return (
               <div
+                key={agent.id}
                 className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300",
-                  isComplete && "bg-success text-success-foreground",
-                  isCurrent && "bg-primary text-primary-foreground animate-pulse",
-                  !isComplete && !isCurrent && "bg-secondary text-muted-foreground"
+                  "flex items-center justify-between rounded-xl border p-4 transition-all duration-300",
+                  isFinished 
+                    ? "border-[#4ade80]/30 bg-transparent" 
+                    : isActive 
+                      ? "border-zinc-600 bg-zinc-900/30" 
+                      : "border-zinc-800 bg-transparent opacity-50"
                 )}
               >
-                <StageIcon className="h-4 w-4" />
+                <div className="flex items-center gap-4">
+                  <div className={cn(
+                    "flex flex-shrink-0 items-center justify-center",
+                    isFinished ? "text-[#4ade80]" : isActive ? "text-zinc-300" : "text-zinc-600"
+                  )}>
+                    {isActive ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : isFinished ? (
+                      <CheckCircle2 className="h-5 w-5" />
+                    ) : (
+                      <Lock className="h-5 w-5" />
+                    )}
+                  </div>
+                  
+                  <div>
+                    <h3 className={cn(
+                      "font-semibold text-sm", 
+                      isFinished ? "text-[#4ade80]" : isActive ? "text-zinc-200" : "text-zinc-400"
+                    )}>
+                      {agent.title}
+                    </h3>
+                    <p className={cn(
+                      "text-xs mt-0.5",
+                      isFinished ? "text-[#4ade80]/80" : "text-zinc-500"
+                    )}>
+                      {agent.subtitle}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Duration */}
+                <div className={cn(
+                  "font-mono text-sm",
+                  isFinished ? "text-[#4ade80]" : isActive ? "text-zinc-400" : "text-zinc-600"
+                )}>
+                  {stageTimes[index] > 0 ? (
+                    <span>0:{stageTimes[index].toString().padStart(2, "0")}</span>
+                  ) : isActive ? (
+                    <span className="animate-pulse">0:00</span>
+                  ) : null}
+                </div>
               </div>
-              {index < pipelineStages.length - 2 && (
-                <div
-                  className={cn(
-                    "h-0.5 flex-1 rounded-full transition-all duration-500",
-                    isComplete ? "bg-success" : "bg-border"
-                  )}
-                />
-              )}
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
       </div>
     </div>
   )

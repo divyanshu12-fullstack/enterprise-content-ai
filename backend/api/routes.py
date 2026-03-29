@@ -29,6 +29,7 @@ class GenerateRequest(BaseModel):
     tone: str | None = Field(default=None, max_length=80)
     additional_context: str | None = Field(default=None, max_length=10000)
     policy_text: str | None = Field(default=None, max_length=50000)
+    enforce_twitter_limit: bool = True
 
 
 class ErrorResponse(BaseModel):
@@ -129,6 +130,7 @@ def generate_content(
             auto_generate_image=runtime.auto_generate_image,
             strict_compliance=runtime.strict_compliance,
             blocked_words=runtime.blocked_words,
+            enforce_twitter_limit=payload.enforce_twitter_limit,
         )
         return result
     except ValidationError as exc:
@@ -173,6 +175,7 @@ def generate_content_stream(
                 strict_compliance=runtime.strict_compliance,
                 blocked_words=runtime.blocked_words,
                 progress_callback=on_progress,
+                enforce_twitter_limit=payload.enforce_twitter_limit,
             )
             event_queue.put(("result", result.model_dump()))
         except ValidationError as exc:

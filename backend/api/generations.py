@@ -22,7 +22,7 @@ class GenerationCreateRequest(BaseModel):
     additional_context: str | None = None
 
     linkedin_post: str | None = None
-    twitter_post: str | None = Field(default=None, max_length=280)
+    twitter_post: str | None = None
     image_prompt: str | None = None
     compliance_status: str = Field(default="PENDING", max_length=20)
     compliance_notes: str | None = None

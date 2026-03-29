@@ -10,8 +10,7 @@ def build_tasks(
     blocked_words: list[str] | None = None,
     strict_compliance: bool = True,
     include_source_urls: bool = True,
-    auto_generate_image: bool = True,
-) -> list[Task]:
+    auto_generate_image: bool = True,    enforce_twitter_limit: bool = True,) -> list[Task]:
     researcher = agents["researcher"]
     writer = agents["writer"]
     brand_governance = agents["brand_governance"]
@@ -49,11 +48,14 @@ def build_tasks(
         agent=researcher,
     )
 
+    twitter_instruction = "280-character Twitter post (single post, not multi-post thread)." if enforce_twitter_limit else "Make twitter post for a user with 800 char limit(don't exceed this) use relevant and trendy hastags."
+    twitter_compliance_rule = "- Reject if Twitter post is longer than 300 characters.\n" if enforce_twitter_limit else ""
+
     writing_task = Task(
         description=(
             "Using the research brief, draft two outputs:\n"
             "1) A 3-paragraph professional LinkedIn post with one clear CTA\n"
-            "2) A 280-character Twitter post (single post, not multi-post thread).\n"
+            f"2) A {twitter_instruction}\n"
             "Keep tone professional and actionable. Avoid hype language.\n"
             f"Requested content type: {content_type_instruction}.\n"
             f"Requested tone: {tone_instruction}.\n"
@@ -71,7 +73,7 @@ def build_tasks(
             "Review the drafts against these hard rules:\n"
             f"- Reject if content includes banned terms: {banned_terms_text}.\n"
             f"{strict_tone_rule}"
-            "- Reject if Twitter post is longer than 280 characters.\n"
+            f"{twitter_compliance_rule}"
             f"- Also verify the output aligns with requested content type: {content_type_instruction}.\n"
             f"- Also verify the output aligns with requested tone: {tone_instruction}.\n"
             f"- Apply this policy text when making a compliance decision: {policy_text_instruction}.\n"

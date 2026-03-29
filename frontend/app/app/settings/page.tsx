@@ -144,7 +144,7 @@ export default function SettingsPage() {
         }
     };
 
-    const handleResetDefaults = () => {
+    const handleResetDefaults = async () => {
         setSelectedModel("gemini-3-flash-preview");
         setGenerationSettings({
             autoRetry: true,
@@ -153,7 +153,16 @@ export default function SettingsPage() {
             autoGenerateImage: true,
             strictCompliance: true,
         });
-        toast.success("Defaults restored");
+        setCustomBlockedWords(blockedWords.join("\n"));
+        setApiKeyValue("");
+        setHasStoredApiKey(false);
+        setApiKeyTestResult({ status: "idle", message: "" });
+        try {
+            await setApiKey("");
+        } catch (error) {
+            console.error("Failed to clear API key on backend");
+        }
+        toast.success("Defaults restored and API key cleared");
     };
 
     return (

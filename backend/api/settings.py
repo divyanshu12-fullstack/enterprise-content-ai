@@ -24,7 +24,7 @@ class SettingsUpsertRequest(BaseModel):
 
 
 class ApiKeyUpdateRequest(BaseModel):
-    api_key: str = Field(..., min_length=10, max_length=512)
+    api_key: str = Field(..., max_length=512)
 
 
 class ApiKeyConnectionTestResponse(BaseModel):
@@ -111,7 +111,10 @@ def set_api_key(
     session: Session = Depends(get_session),
 ) -> dict[str, str]:
     settings = _get_or_create_settings(session, current_user)
-    settings.encrypted_api_key = encrypt_secret(payload.api_key)
+    if payload.api_key.strip():
+        settings.encrypted_api_key = encrypt_secret(payload.api_key.strip())
+    else:
+        settings.encrypted_api_key = None
     settings.updated_at = datetime.now(timezone.utc)
     try:
         session.add(settings)

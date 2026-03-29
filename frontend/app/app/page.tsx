@@ -36,8 +36,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
 import { createGeneration, generateContent, generateContentStream, getSettings, uploadPolicyFile } from "@/lib/api";
 import type { FinalContentOutput } from "@/lib/schemas";
+import { PipelineStatus } from "@/components/pipeline-status";
 import axios from "axios";
 
 const audiences = [
@@ -84,9 +86,11 @@ const stageIndexById: Record<string, number> = {
 };
 
 const quickTemplates = [
-    "How AI copilots are changing enterprise productivity",
-    "A practical framework for GTM alignment in B2B teams",
-    "How to build trust in AI-first customer experiences",
+    "The evolution of Prompt Engineering into Agentic Workflows",
+    "How to maintain brand safety when scaling GenAI content",
+    "Transitioning from RAG to autonomous multi-agent pipelines",
+    "Measuring ROI on enterprise LLM deployments in 2026",
+    "Top 5 cybersecurity pitfalls when adopting AI tooling"
 ];
 
 export default function GeneratePage() {
@@ -131,6 +135,7 @@ export default function GeneratePage() {
     const [audience, setAudience] = useState("");
     const [contentType, setContentType] = useState("");
     const [tone, setTone] = useState("");
+    const [enforceTwitterLimit, setEnforceTwitterLimit] = useState(true);
     const [additionalContext, setAdditionalContext] = useState("");
     const [policyFile, setPolicyFile] = useState<File | null>(null);
     const [policyText, setPolicyText] = useState("");
@@ -252,6 +257,7 @@ export default function GeneratePage() {
                 tone: tone || undefined,
                 additional_context: additionalContext || undefined,
                 policy_text: policyText || undefined,
+                enforce_twitter_limit: enforceTwitterLimit,
             };
 
             let output: FinalContentOutput;
@@ -461,6 +467,7 @@ export default function GeneratePage() {
 
     return (
         <div className="min-h-screen bg-transparent">
+            <PipelineStatus isRunning={isGenerating && !generationError} currentStage={currentStage} />
             <header className="app-header-glass sticky top-0 z-30 border-b border-border/80">
                 <div className="flex min-h-20 flex-wrap items-center justify-between gap-3 px-4 py-5 pl-14 md:min-h-24 md:flex-nowrap md:px-6 md:py-6 md:pl-6">
                     <div>
@@ -635,6 +642,20 @@ export default function GeneratePage() {
                                     </div>
                                 </div>
 
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between rounded-lg border border-border bg-input p-3">
+                                        <div className="space-y-0.5">
+                                            <Label htmlFor="enforce-twitter-limit" className="text-sm font-medium">Enforce Twitter/X Character Limit</Label>
+                                            <p className="text-xs text-muted-foreground">Keep Twitter posts strictly under 280 characters</p>
+                                        </div>
+                                        <Switch
+                                            id="enforce-twitter-limit"
+                                            checked={enforceTwitterLimit}
+                                            onCheckedChange={setEnforceTwitterLimit}
+                                        />
+                                    </div>
+                                </div>
+
                                 <div className="space-y-2">
                                     <Label htmlFor="context">Additional context</Label>
                                     <Textarea
@@ -724,6 +745,9 @@ export default function GeneratePage() {
                                             {!isGenerating && <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />}
                                         </span>
                                     </Button>
+                                    <p className="mt-3 text-center text-xs text-muted-foreground/80 balance-text mx-auto max-w-[90%]">
+                                        Content generation works with the default shared API but offers limited capabilities. For faster, unrestricted, and highly personalized results, please configure your own personal API key in Settings.
+                                    </p>
                                 </div>
                             </CardContent>
                         </Card>

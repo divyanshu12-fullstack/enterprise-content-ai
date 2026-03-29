@@ -25,11 +25,27 @@ def test_twitter_length_violation_rejected_and_trimmed() -> None:
         "compliance_notes": "Looks good",
     }
 
-    result = apply_deterministic_compliance(payload)
+    result = apply_deterministic_compliance(payload, enforce_twitter_limit=True)
 
     assert result["compliance_status"] == "REJECTED"
     assert "twitter_post exceeds 280 characters" in result["compliance_notes"]
     assert len(result["twitter_post"]) == 280
+
+
+def test_twitter_length_violation_ignored_if_disabled() -> None:
+    payload = {
+        "linkedin_post": "Professional post.",
+        "twitter_post": "x" * 300,
+        "image_prompt": "clean office image",
+        "compliance_status": "APPROVED",
+        "compliance_notes": "Passed deterministic compliance checks",
+    }
+
+    result = apply_deterministic_compliance(payload, enforce_twitter_limit=False)
+
+    assert result["compliance_status"] == "APPROVED"
+    assert "Passed deterministic compliance checks" in result["compliance_notes"]
+    assert len(result["twitter_post"]) == 300
 
 
 def test_custom_blocked_word_is_enforced() -> None:

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -10,7 +9,6 @@ import {
     Copy,
     Download,
     ExternalLink,
-    Image as ImageIcon,
     Linkedin,
     Loader2,
     RotateCcw,
@@ -27,6 +25,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getGeneration, publishGeneration, rejectGeneration } from "@/lib/api";
 import type { Generation } from "@/lib/schemas";
+import { ContentPreview, ImagePreview } from "@/components/content-preview";
+import { ComplianceBadge } from "@/components/compliance-badge";
 
 interface GenerationResult {
     id: string;
@@ -265,31 +265,7 @@ export default function ApprovalPage() {
                     </div>
 
                     <div className="space-y-6">
-                        <Card className="app-panel border-border/80">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-base">
-                                    <ImageIcon className="h-4 w-4" />
-                                    Image Prompt
-                                </CardTitle>
-                                <CardDescription>Recommended visual directions for your post</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="rounded-lg border border-border bg-secondary p-3">
-                                    <p className="text-xs text-muted-foreground">Prompt</p>
-                                    <p className="mt-1 text-sm leading-relaxed">{result.image_prompt}</p>
-                                    <div className="mt-3 flex gap-2">
-                                        <Button variant="outline" size="sm" onClick={() => handleCopy(result.image_prompt, "Prompt")}>
-                                            <Copy className="mr-2 h-4 w-4" />
-                                            Copy Prompt
-                                        </Button>
-                                        <Button variant="default" size="sm" onClick={handleGenerateImage}>
-                                            <ExternalLink className="mr-2 h-4 w-4" />
-                                            Generate Image in Gemini
-                                        </Button>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
+                        <ImagePreview prompt={result.image_prompt} />
 
                         <Card className="app-panel border-border/80">
                             <CardHeader>

@@ -44,6 +44,7 @@ def _kickoff_and_validate(
     policy_text: str | None = None,
     blocked_words: list[str] | None = None,
     progress_callback: Callable[[str, str], None] | None = None,
+    enforce_twitter_limit: bool = True,
 ) -> FinalContentOutput:
     if progress_callback:
         progress_callback("research", "Gathering market context")
@@ -56,21 +57,23 @@ def _kickoff_and_validate(
             "tone": tone or "",
             "additional_context": additional_context or "",
             "policy_text": policy_text or "",
+            "enforce_twitter_limit": str(enforce_twitter_limit).lower(),
         }
     )
 
     raw_output = getattr(result, "raw", str(result))
-    if progress_callback:
-        progress_callback("writing", "Drafting LinkedIn and Twitter content")
+
     logger.info(f"\n[RESULT {run_id}] Raw final output from crew:\n{raw_output}")
 
     parsed_json = _extract_json_block(raw_output)
-    if progress_callback:
-        progress_callback("compliance", "Applying deterministic compliance checks")
-    parsed_json = apply_deterministic_compliance(parsed_json, blocked_words=blocked_words)
+
+    parsed_json = apply_deterministic_compliance(
+        parsed_json,
+        blocked_words=blocked_words,
+        enforce_twitter_limit=enforce_twitter_limit
+    )
     validated = FinalContentOutput.model_validate(parsed_json)
-    if progress_callback:
-        progress_callback("visual", "Preparing final visual prompt package")
+
     return validated
 
 
@@ -90,6 +93,7 @@ def run_content_pipeline(
     strict_compliance: bool = True,
     blocked_words: list[str] | None = None,
     progress_callback: Callable[[str, str], None] | None = None,
+    enforce_twitter_limit: bool = True,
 ) -> FinalContentOutput:
     run_id = uuid.uuid4().hex[:8]
     logger.info(f"\n[INIT {run_id}] Starting CrewAI content pipeline")
@@ -119,7 +123,28 @@ def run_content_pipeline(
         strict_compliance=strict_compliance,
         include_source_urls=include_source_urls,
         auto_generate_image=auto_generate_image,
+        enforce_twitter_limit=enforce_twitter_limit,
     )
+
+
+    # Map stages
+    stages = ["research", "writing", "compliance", "visual"]
+    for i, t in enumerate(tasks):
+        def make_cb(stage_name):
+            def cb(output):
+                if progress_callback:
+                    # Fire next stage
+                    try:
+                        next_idx = stages.index(stage_name) + 1
+                        if next_idx < len(stages):
+                            cb.called = getattr(cb, "called", 0) + 1
+                            if cb.called == 1:
+                                progress_callback(stages[next_idx], f"Started {stages[next_idx]} task")
+                    except:
+                        pass
+            return cb
+        if i < len(stages):
+            t.callback = make_cb(stages[i])
 
     crew = Crew(
         agents=list(agents.values()),
@@ -147,6 +172,7 @@ def run_content_pipeline(
                 policy_text=policy_text,
                 blocked_words=blocked_words,
                 progress_callback=progress_callback,
+                enforce_twitter_limit=enforce_twitter_limit,
             )
             break
         except (ValueError, ValidationError, json.JSONDecodeError) as exc:

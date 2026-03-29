@@ -29,6 +29,7 @@ def _contains_term(text: str, term: str) -> bool:
 def apply_deterministic_compliance(
     payload: dict[str, Any],
     blocked_words: list[str] | None = None,
+    enforce_twitter_limit: bool = True,
 ) -> dict[str, Any]:
     linkedin_post = str(payload.get("linkedin_post", "") or "")
     twitter_post = str(payload.get("twitter_post", "") or "")
@@ -43,9 +44,9 @@ def apply_deterministic_compliance(
         if _contains_term(twitter_post, term):
             violations.append(f"Banned term '{term}' found in twitter_post")
 
-    if len(twitter_post) > 280:
-        violations.append("twitter_post exceeds 280 characters")
-        twitter_post = twitter_post[:280]
+    if enforce_twitter_limit and len(twitter_post) > 300:
+        violations.append("twitter_post exceeds 300 characters")
+        twitter_post = twitter_post[:300]
 
     status = str(payload.get("compliance_status", "")).strip().upper()
     notes = str(payload.get("compliance_notes", "") or "").strip()

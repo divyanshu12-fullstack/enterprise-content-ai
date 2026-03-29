@@ -62,7 +62,7 @@ class Generation(SQLModel, table=True):
     additional_context: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
 
     linkedin_post: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
-    twitter_post: str | None = Field(default=None, max_length=280)
+    twitter_post: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
     image_prompt: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
     compliance_status: str = Field(default="PENDING", max_length=20)
     compliance_notes: str | None = Field(default=None, sa_column=Column(Text, nullable=True))

@@ -7,11 +7,12 @@ export const GeneratePayloadSchema = z.object({
 	tone: z.string().max(80).optional(),
 	additional_context: z.string().optional(),
 	policy_text: z.string().optional(),
+	enforce_twitter_limit: z.boolean().optional(),
 });
 
 export const FinalContentOutputSchema = z.object({
 	linkedin_post: z.string().min(1),
-	twitter_post: z.string().min(1).max(280),
+	twitter_post: z.string().min(1),
 	image_prompt: z.string().min(1),
 	compliance_status: z.enum(["APPROVED", "REJECTED"]),
 	compliance_notes: z.string().min(1),

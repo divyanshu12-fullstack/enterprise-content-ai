@@ -1,6 +1,6 @@
 "use client";
 
-/* eslint-disable react/no-unknown-property */
+ 
 import { useMemo, useRef } from "react";
 import { Canvas, ThreeElements, useFrame } from "@react-three/fiber";
 import { motion } from "framer-motion";

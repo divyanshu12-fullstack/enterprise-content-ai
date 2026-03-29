@@ -26,14 +26,15 @@ def test_invalid_compliance_status_rejected() -> None:
 
 
 def test_twitter_post_limit_enforced() -> None:
-    with pytest.raises(ValueError):
-        FinalContentOutput(
-            linkedin_post="x",
-            twitter_post="x" * 281,
-            image_prompt="z",
-            compliance_status="APPROVED",
-            compliance_notes="x",
-        )
+    # the schema no longer enforces the 280 constraint, only the compliance logic
+    output = FinalContentOutput(
+        linkedin_post="x",
+        twitter_post="x" * 281,
+        image_prompt="z",
+        compliance_status="APPROVED",
+        compliance_notes="x",
+    )
+    assert len(output.twitter_post) == 281
 
 
 def test_required_non_empty_fields_enforced() -> None:

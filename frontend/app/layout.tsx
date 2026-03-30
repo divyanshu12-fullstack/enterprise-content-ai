@@ -45,11 +45,13 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const showAnalytics = process.env.NODE_ENV === 'production';
+
   return (
     <html lang="en" className="scroll-smooth" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className={`${geist.variable} font-sans antialiased`}>
         {children}
-        <Analytics />
+        {showAnalytics ? <Analytics /> : null}
       </body>
     </html>
   );

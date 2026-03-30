@@ -16,7 +16,14 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const navItems = [
   {
@@ -42,7 +49,10 @@ function NavItem({ item, pathname, navLinkClasses, setOpen }: any) {
 
   useEffect(() => {
     if (item.href !== "/app") return;
-    const handleTopicEvent = (e: any) => setHasTopic(e.detail.hasTopic);
+    const handleTopicEvent = (e: any) => {
+      const nextHasTopic = Boolean(e?.detail?.hasTopic);
+      setHasTopic((prev) => (prev === nextHasTopic ? prev : nextHasTopic));
+    };
     window.addEventListener("contentai_topic_change", handleTopicEvent);
     return () => window.removeEventListener("contentai_topic_change", handleTopicEvent);
   }, [item.href]);
@@ -175,6 +185,10 @@ export function AppSidebar() {
             side="left"
             className="app-panel w-[85vw] max-w-[320px] overflow-hidden border-sidebar-border bg-sidebar/95 p-0"
           >
+            <SheetHeader className="sr-only">
+              <SheetTitle>Navigation Menu</SheetTitle>
+              <SheetDescription>Access workspace navigation and account actions.</SheetDescription>
+            </SheetHeader>
             <div className="flex h-18 flex-col items-start justify-center border-b border-sidebar-border px-6">
               <span className="gradient-text text-sm font-semibold tracking-wide">
                 ContentAI

@@ -8,6 +8,10 @@ logger = logging.getLogger(__name__)
 from crew.tools import duckduckgo_search_tool
 
 
+def _verbose_enabled() -> bool:
+    return os.getenv("CREW_VERBOSE", "false").lower() in {"1", "true", "yes", "on"}
+
+
 @lru_cache(maxsize=1)
 def _build_llm(
     model_name: str | None = None,
@@ -40,6 +44,7 @@ def build_agents(
     temperature: float | None = None,
 ) -> dict[str, Agent]:
     llm = _build_llm(model_name=model_name, api_key=api_key, temperature=temperature)
+    verbose = _verbose_enabled()
 
     researcher = Agent(
         role="Senior Market Researcher",
@@ -53,9 +58,9 @@ def build_agents(
         ),
         tools=[duckduckgo_search_tool],
         llm=llm,
-        verbose=True,
+        verbose=verbose,
         allow_delegation=False,
-        max_iter=3,
+        max_iter=2,
     )
 
     writer = Agent(
@@ -70,9 +75,9 @@ def build_agents(
             "insightful tone, while Twitter requires punchy, engaging hooks."
         ),
         llm=llm,
-        verbose=True,
+        verbose=verbose,
         allow_delegation=False,
-        max_iter=3,
+        max_iter=2,
     )
 
     brand_governance = Agent(
@@ -83,9 +88,9 @@ def build_agents(
             "'guarantee,' 'promise,' or 'investment advice.' You ensure the tone is professional."
         ),
         llm=llm,
-        verbose=True,
+        verbose=verbose,
         allow_delegation=False,
-        max_iter=3,
+        max_iter=1,
     )
 
     visual = Agent(
@@ -99,6 +104,14 @@ def build_agents(
             "text-to-image models."
         ),
         llm=llm,
-        verbose=True,
+        verbose=verbose,
         allow_delegation=False,
-        max_iter=3,
+        max_iter=1,
+    )
+
+    return {
+        "researcher": researcher,
+        "writer": writer,
+        "brand_governance": brand_governance,
+        "visual": visual,
+    }

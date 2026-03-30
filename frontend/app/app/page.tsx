@@ -35,7 +35,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { createGeneration, generateContent, generateContentStream, getSettings, uploadPolicyFile } from "@/lib/api";
 import type { FinalContentOutput } from "@/lib/schemas";
@@ -74,6 +81,8 @@ const pipelineStages = [
     { id: "compliance", label: "Compliance checks", icon: FileCheck, agent: "Governance Agent" },
     { id: "visual", label: "Visual prompt generation", icon: WandSparkles, agent: "Visual Agent" },
 ];
+
+const stageExpectedDurations = [6, 12, 8, 5];
 
 const stageIndexById: Record<string, number> = {
     init: 0,
@@ -162,8 +171,38 @@ export default function GeneratePage() {
     const [generationError, setGenerationError] = useState<string | null>(null);
     const [stageElapsed, setStageElapsed] = useState(0);
     const [hasAssignedApiKey, setHasAssignedApiKey] = useState<boolean | null>(null);
+    const topicEventTimeoutRef = useRef<number | null>(null);
 
     const topicRef = useRef<HTMLTextAreaElement>(null);
+
+    const dispatchTopicChange = useCallback((hasTopic: boolean, immediate = false) => {
+        if (typeof window === "undefined") return;
+
+        if (topicEventTimeoutRef.current !== null) {
+            window.clearTimeout(topicEventTimeoutRef.current);
+            topicEventTimeoutRef.current = null;
+        }
+
+        const emit = () => {
+            const event = new CustomEvent("contentai_topic_change", { detail: { hasTopic } });
+            window.dispatchEvent(event);
+        };
+
+        if (immediate) {
+            emit();
+            return;
+        }
+
+        topicEventTimeoutRef.current = window.setTimeout(emit, 250);
+    }, []);
+
+    useEffect(() => {
+        return () => {
+            if (topicEventTimeoutRef.current !== null && typeof window !== "undefined") {
+                window.clearTimeout(topicEventTimeoutRef.current);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         if (isGenerating && !generationError) {
@@ -339,7 +378,8 @@ export default function GeneratePage() {
                                 {pipelineStages.map((_, idx) => {
                                     const done = idx < currentStage;
                                     const active = idx === currentStage && !generationError;
-                                    const activePercentage = Math.min((stageElapsed / 2.6) * 100, 100);
+                                    const expectedDuration = stageExpectedDurations[idx] ?? 8;
+                                    const activePercentage = Math.min((stageElapsed / expectedDuration) * 100, 96);
                                     return (
                                         <div key={idx} className="h-full flex-1 overflow-hidden rounded-full bg-secondary">
                                             <div
@@ -460,13 +500,10 @@ export default function GeneratePage() {
                                     <button
                                         key={template}
                                         type="button"
-                                        onClick={(e) => {
+                                        onClick={() => {
 
                                             setTopic(template);
-                                            if (typeof window !== "undefined") {
-                                                const event = new CustomEvent("contentai_topic_change", { detail: { hasTopic: true } });
-                                                window.dispatchEvent(event);
-                                            }
+                                            dispatchTopicChange(true, true);
                                         }}
                                         className="group flex w-full items-start gap-3 rounded-lg border border-border bg-card px-3 py-2.5 text-left text-sm text-muted-foreground transition-all duration-200 hover:border-foreground/30 hover:text-foreground active:scale-[0.98] active:bg-primary/10 active:border-primary/30"
                                     >
@@ -484,7 +521,7 @@ export default function GeneratePage() {
 
     return (
         <div className="min-h-screen bg-transparent">
-            <PipelineStatus isRunning={isGenerating && !generationError} currentStage={currentStage} />
+            <PipelineStatus isRunning={isGenerating && !generationError} currentStage={currentStage} stageElapsed={stageElapsed} />
             <header className="app-header-glass sticky top-0 z-30 border-b border-border/80">
                 <div className="flex min-h-20 flex-wrap items-center justify-between gap-3 px-4 py-5 pl-14 md:min-h-24 md:flex-nowrap md:px-6 md:py-6 md:pl-6">
                     <div>
@@ -508,6 +545,10 @@ export default function GeneratePage() {
                                 </Button>
                             </SheetTrigger>
                             <SheetContent side="right" className="w-75 sm:w-100 overflow-y-auto pt-10">
+                                <SheetHeader className="sr-only">
+                                    <SheetTitle>Pipeline Information</SheetTitle>
+                                    <SheetDescription>View pipeline progress, stage status, and quick brief templates.</SheetDescription>
+                                </SheetHeader>
                                 {renderRightPanel()}
                             </SheetContent>
                         </Sheet>
@@ -577,10 +618,7 @@ export default function GeneratePage() {
                                             onChange={(e) => {
                                                 const newTopic = e.target.value;
                                                 setTopic(newTopic);
-                                                if (typeof window !== "undefined") {
-                                                    const event = new CustomEvent("contentai_topic_change", { detail: { hasTopic: newTopic.trim().length > 0 } });
-                                                    window.dispatchEvent(event);
-                                                }
+                                                dispatchTopicChange(newTopic.trim().length > 0);
                                                 if (errors.topic) setErrors({ ...errors, topic: undefined });
                                             }}
                                             placeholder="Example: Practical lessons from deploying AI copilots in enterprise support teams"

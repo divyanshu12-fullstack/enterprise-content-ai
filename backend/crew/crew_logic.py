@@ -1,5 +1,7 @@
 import json
+import os
 import re
+import time
 import uuid
 import logging
 from typing import Any
@@ -15,6 +17,10 @@ from crew.schemas import FinalContentOutput
 from crew.tasks import build_tasks
 
 logger = logging.getLogger(__name__)
+
+
+def _verbose_enabled() -> bool:
+    return os.getenv("CREW_VERBOSE", "false").lower() in {"1", "true", "yes", "on"}
 
 
 def _extract_json_block(text: str) -> dict[str, Any]:
@@ -150,11 +156,11 @@ def run_content_pipeline(
         agents=list(agents.values()),
         tasks=tasks,
         process=Process.sequential,
-        verbose=True,
+        verbose=_verbose_enabled(),
     )
 
-    # Protect against excessive retries if database settings allow > 2
-    max_retries = min(max(0, max_retries), 2)
+    # Keep retries conservative to reduce total wall-clock latency.
+    max_retries = min(max(0, max_retries), 1)
     attempts = 1 + max_retries if auto_retry else 1
     last_error: Exception | None = None
     validated: FinalContentOutput | None = None
@@ -180,6 +186,8 @@ def run_content_pipeline(
         except (ValueError, ValidationError, json.JSONDecodeError) as exc:
             last_error = exc
             logger.error(f"[VALIDATION {run_id}] Attempt {attempt}/{attempts} failed: {exc}")
+            if attempt < attempts:
+                time.sleep(0.75 * attempt)
             if attempt == attempts:
                 raise
 

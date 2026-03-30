@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, Loader2, Lock } from "lucide-react";
 
@@ -30,30 +29,10 @@ const agents = [
 interface PipelineStatusProps {
   isRunning: boolean;
   currentStage: number;
+  stageElapsed: number;
 }
 
-export function PipelineStatus({ isRunning, currentStage }: PipelineStatusProps) {
-  const [stageTimes, setStageTimes] = useState<number[]>(agents.map(() => 0));
-
-  useEffect(() => {
-    if (!isRunning) {
-      setStageTimes(agents.map(() => 0));
-      return;
-    }
-
-    if (currentStage >= agents.length) return;
-
-    const timer = setInterval(() => {
-      setStageTimes((prev) => {
-        const newTimes = [...prev];
-        newTimes[currentStage] += 1;
-        return newTimes;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [isRunning, currentStage]);
-
+export function PipelineStatus({ isRunning, currentStage, stageElapsed }: PipelineStatusProps) {
   if (!isRunning) return null;
 
   const isComplete = currentStage >= agents.length;
@@ -108,7 +87,7 @@ export function PipelineStatus({ isRunning, currentStage }: PipelineStatusProps)
               >
                 <div className="flex items-center gap-4">
                   <div className={cn(
-                    "flex flex-shrink-0 items-center justify-center",
+                    "flex shrink-0 items-center justify-center",
                     isFinished ? "text-[#4ade80]" : isActive ? "text-zinc-300" : "text-zinc-600"
                   )}>
                     {isActive ? (
@@ -141,11 +120,7 @@ export function PipelineStatus({ isRunning, currentStage }: PipelineStatusProps)
                   "font-mono text-sm",
                   isFinished ? "text-[#4ade80]" : isActive ? "text-zinc-400" : "text-zinc-600"
                 )}>
-                  {stageTimes[index] > 0 ? (
-                    <span>0:{stageTimes[index].toString().padStart(2, "0")}</span>
-                  ) : isActive ? (
-                    <span className="animate-pulse">0:00</span>
-                  ) : null}
+                  {isActive ? <span>0:{stageElapsed.toString().padStart(2, "0")}</span> : null}
                 </div>
               </div>
             );

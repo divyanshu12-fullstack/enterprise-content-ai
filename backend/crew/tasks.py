@@ -59,7 +59,8 @@ def build_tasks(
             "Keep tone professional and actionable. Avoid hype language.\n"
             f"Requested content type: {content_type_instruction}.\n"
             f"Requested tone: {tone_instruction}.\n"
-            f"Additional context from user: {additional_context_instruction}."
+            f"Additional context from user: {additional_context_instruction}.\n"
+            "Provide 5-6 good relevant hastags, for better wider audience reach relevant to the current topic."
         ),
         expected_output=(
             "A response containing clearly labeled LinkedIn and Twitter drafts."

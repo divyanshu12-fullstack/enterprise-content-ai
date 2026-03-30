@@ -50,7 +50,7 @@ class RuntimeSettings(BaseModel):
     model_name: str | None = None
     api_key: str | None = None
     auto_retry: bool = True
-    max_retries: int = 2
+    max_retries: int = 1
     include_source_urls: bool = True
     auto_generate_image: bool = True
     strict_compliance: bool = True
@@ -70,7 +70,7 @@ def _resolve_runtime_settings(
         model_name=os.getenv("GEMINI_MODEL", "gemini-3-flash-preview"),
         api_key=os.getenv("GEMINI_API_KEY"),
         auto_retry=True,
-        max_retries=2,
+        max_retries=1,
         include_source_urls=True,
         auto_generate_image=True,
         strict_compliance=True,

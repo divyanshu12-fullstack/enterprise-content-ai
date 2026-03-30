@@ -22,6 +22,22 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem("contentai_access_token");
+        window.localStorage.removeItem("contentai_user_email");
+        if (window.location.pathname.startsWith('/app/')) {
+          window.location.href = "/login";
+        }
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export type LoginPayload = {
   email: string;
   password: string;
@@ -112,6 +128,16 @@ export async function generateContentStream(
   });
 
   if (!response.ok || !response.body) {
+    if (response.status === 401) {
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem("contentai_access_token");
+        window.localStorage.removeItem("contentai_user_email");
+        if (window.location.pathname.startsWith('/app/')) {
+          window.location.href = "/login";
+        }
+      }
+      throw new Error("API_KEY_INVALID: Session expired or invalid authentication.");
+    }
     throw new Error("Failed to open generation stream");
   }
 

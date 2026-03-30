@@ -31,7 +31,16 @@ export default function AppLayout({ children }: { children: React.ReactNode; }) 
         if (active) {
           setReady(true);
         }
-      } catch {
+      } catch (err: any) {
+        if (err?.response?.status === 401) {
+          window.localStorage.removeItem("contentai_access_token");
+          window.localStorage.removeItem("contentai_user_email");
+          router.replace("/login");
+        } else {
+          // If it's a network error or 500, we don't necessarily want to bump them out 
+          // of the UI entirely to the login screen. They might just have bad wifi.
+          if (active) setReady(true);
+        }
         window.localStorage.removeItem("contentai_access_token");
         window.localStorage.removeItem("contentai_user_email");
         router.replace("/login");

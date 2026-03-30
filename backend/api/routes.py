@@ -12,7 +12,7 @@ from pydantic import Field
 from pydantic import ValidationError
 from starlette.responses import StreamingResponse
 
-from api.deps import get_current_user_optional
+from api.deps import get_current_user
 from crew.crew_logic import run_content_pipeline
 from crew.schemas import FinalContentOutput
 from db.models import User, UserSettings
@@ -115,7 +115,7 @@ def _resolve_runtime_settings(
 )
 def generate_content(
     payload: GenerateRequest,
-    current_user: User | None = Depends(get_current_user_optional),
+    current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> FinalContentOutput:
     try:
@@ -161,7 +161,7 @@ def generate_content(
 @router.post("/generate/stream")
 def generate_content_stream(
     payload: GenerateRequest,
-    current_user: User | None = Depends(get_current_user_optional),
+    current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ) -> StreamingResponse:
     runtime = _resolve_runtime_settings(session=session, current_user=current_user)

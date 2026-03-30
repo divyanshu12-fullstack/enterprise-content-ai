@@ -15,11 +15,6 @@ export default function AppLayout({ children }: { children: React.ReactNode; }) 
   useEffect(() => {
     let active = true;
     const run = async () => {
-      if (pathname === "/app/login") {
-        setReady(true);
-        return;
-      }
-
       const token = window.localStorage.getItem("contentai_access_token");
       if (!token) {
         router.replace("/login");
@@ -41,9 +36,6 @@ export default function AppLayout({ children }: { children: React.ReactNode; }) 
           // of the UI entirely to the login screen. They might just have bad wifi.
           if (active) setReady(true);
         }
-        window.localStorage.removeItem("contentai_access_token");
-        window.localStorage.removeItem("contentai_user_email");
-        router.replace("/login");
       }
     };
 

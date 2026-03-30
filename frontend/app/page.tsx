@@ -62,7 +62,7 @@ function Navigation() {
         </div>
 
         <div className="hidden items-center gap-4 md:flex">
-          <Link href="/app" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+          <Link href="/login" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
             Log in
           </Link>
           <Button asChild>
@@ -90,7 +90,7 @@ function Navigation() {
             <Link href="#testimonials" className="text-sm text-muted-foreground">Testimonials</Link>
             <Link href="#pricing" className="text-sm text-muted-foreground">Pricing</Link>
             <hr className="border-border" />
-            <Link href="/app" className="text-sm text-muted-foreground">Log in</Link>
+            <Link href="/login" className="text-sm text-muted-foreground">Log in</Link>
             <Button asChild className="w-full">
               <Link href="/app">Get Started Free</Link>
             </Button>

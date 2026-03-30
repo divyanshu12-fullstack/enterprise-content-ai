@@ -29,7 +29,7 @@ api.interceptors.response.use(
       if (typeof window !== "undefined") {
         window.localStorage.removeItem("contentai_access_token");
         window.localStorage.removeItem("contentai_user_email");
-        if (window.location.pathname.startsWith('/app/')) {
+        if (window.location.pathname.startsWith("/app")) {
           window.location.href = "/login";
         }
       }
@@ -62,6 +62,8 @@ export type SettingsPayload = {
 
 export type SettingsResponse = SettingsPayload & {
   has_api_key: boolean;
+  has_default_api_key?: boolean;
+  has_effective_api_key?: boolean;
 };
 
 export type GenerationCreatePayload = {
@@ -132,7 +134,7 @@ export async function generateContentStream(
       if (typeof window !== "undefined") {
         window.localStorage.removeItem("contentai_access_token");
         window.localStorage.removeItem("contentai_user_email");
-        if (window.location.pathname.startsWith('/app/')) {
+        if (window.location.pathname.startsWith("/app")) {
           window.location.href = "/login";
         }
       }

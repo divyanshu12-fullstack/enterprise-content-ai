@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import os
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -34,6 +35,8 @@ class ApiKeyConnectionTestResponse(BaseModel):
 
 class SettingsResponse(SettingsUpsertRequest):
     has_api_key: bool = False
+    has_default_api_key: bool = False
+    has_effective_api_key: bool = False
 
 
 def _get_or_create_settings(session: Session, user: User) -> UserSettings:
@@ -61,6 +64,8 @@ def get_settings(
     session: Session = Depends(get_session),
 ) -> SettingsResponse:
     settings = _get_or_create_settings(session, current_user)
+    has_user_api_key = bool(settings.encrypted_api_key)
+    has_default_api_key = bool(os.getenv("GEMINI_API_KEY"))
     return SettingsResponse(
         selected_model=settings.selected_model,
         auto_retry=settings.auto_retry,
@@ -69,7 +74,9 @@ def get_settings(
         auto_generate_image=settings.auto_generate_image,
         strict_compliance=settings.strict_compliance,
         custom_blocked_words=settings.custom_blocked_words,
-        has_api_key=bool(settings.encrypted_api_key),
+        has_api_key=has_user_api_key,
+        has_default_api_key=has_default_api_key,
+        has_effective_api_key=(has_user_api_key or has_default_api_key),
     )
 
 
@@ -101,7 +108,14 @@ def upsert_settings(
             detail="Database error while updating settings",
         ) from exc
 
-    return SettingsResponse(**payload.model_dump(), has_api_key=bool(settings.encrypted_api_key))
+    has_user_api_key = bool(settings.encrypted_api_key)
+    has_default_api_key = bool(os.getenv("GEMINI_API_KEY"))
+    return SettingsResponse(
+        **payload.model_dump(),
+        has_api_key=has_user_api_key,
+        has_default_api_key=has_default_api_key,
+        has_effective_api_key=(has_user_api_key or has_default_api_key),
+    )
 
 
 @router.put("/api-key")

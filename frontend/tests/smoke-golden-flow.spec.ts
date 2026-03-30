@@ -54,6 +54,24 @@ test("golden flow: login -> generate -> approval -> publish -> history", async (
             return;
         }
 
+        if (url.pathname === "/api/settings" && method === "GET") {
+            await route.fulfill({
+                status: 200,
+                contentType: "application/json",
+                body: JSON.stringify({
+                    selected_model: "gemini-3-flash-preview",
+                    auto_retry: true,
+                    max_retries: 2,
+                    include_source_urls: true,
+                    auto_generate_image: true,
+                    strict_compliance: true,
+                    custom_blocked_words: [],
+                    has_api_key: true,
+                }),
+            });
+            return;
+        }
+
         if (url.pathname === "/api/generate" && method === "POST") {
             await route.fulfill({
                 status: 200,

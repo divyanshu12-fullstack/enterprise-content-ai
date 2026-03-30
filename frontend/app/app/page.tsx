@@ -223,11 +223,12 @@ export default function GeneratePage() {
             try {
                 const settings = await getSettings();
                 if (active) {
-                    setHasAssignedApiKey(settings.has_api_key === true);
+                    const hasEffectiveApiKey = (settings.has_effective_api_key ?? settings.has_api_key) === true;
+                    setHasAssignedApiKey(hasEffectiveApiKey);
                 }
             } catch {
                 if (active) {
-                    setHasAssignedApiKey(false);
+                    setHasAssignedApiKey(null);
                 }
             }
         };
@@ -289,8 +290,8 @@ export default function GeneratePage() {
         if (!validateForm()) return;
 
         if (hasAssignedApiKey === false) {
-            toast.error("API key not assigned", {
-                description: "Submit an API key in Settings before generating content.",
+            toast.error("No API key available", {
+                description: "Add a personal API key in Settings or configure GEMINI_API_KEY on the backend.",
             });
             router.push("/app/settings");
             return;

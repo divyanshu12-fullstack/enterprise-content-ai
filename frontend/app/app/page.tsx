@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -14,13 +14,11 @@ import {
     Loader2,
     Megaphone,
     Search,
-    Upload,
     Users,
     WandSparkles,
     X,
     CheckCircle2,
     CloudUpload,
-    Circle,
     ChevronRight,
     Sparkles,
     Lock,
@@ -44,7 +42,7 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
-import { createGeneration, generateContent, generateContentStream, getSettings, uploadPolicyFile } from "@/lib/api";
+import { createGeneration, generateContentStream, getSettings, uploadPolicyFile } from "@/lib/api";
 import type { FinalContentOutput } from "@/lib/schemas";
 import { PipelineStatus } from "@/components/pipeline-status";
 import axios from "axios";
@@ -171,6 +169,7 @@ export default function GeneratePage() {
     const [generationError, setGenerationError] = useState<string | null>(null);
     const [stageElapsed, setStageElapsed] = useState(0);
     const [hasAssignedApiKey, setHasAssignedApiKey] = useState<boolean | null>(null);
+    const [hasEffectiveApiKey, setHasEffectiveApiKey] = useState<boolean | null>(null);
     const topicEventTimeoutRef = useRef<number | null>(null);
 
     const topicRef = useRef<HTMLTextAreaElement>(null);
@@ -223,12 +222,13 @@ export default function GeneratePage() {
             try {
                 const settings = await getSettings();
                 if (active) {
-                    const hasEffectiveApiKey = (settings.has_effective_api_key ?? settings.has_api_key) === true;
-                    setHasAssignedApiKey(hasEffectiveApiKey);
+                    setHasAssignedApiKey(settings.has_api_key === true);
+                    setHasEffectiveApiKey((settings.has_effective_api_key ?? settings.has_api_key) === true);
                 }
             } catch {
                 if (active) {
                     setHasAssignedApiKey(null);
+                    setHasEffectiveApiKey(null);
                 }
             }
         };
@@ -239,11 +239,6 @@ export default function GeneratePage() {
             active = false;
         };
     }, []);
-
-    const progress = useMemo(() => {
-        if (!isGenerating) return 0;
-        return ((currentStage + 1) / pipelineStages.length) * 100;
-    }, [isGenerating, currentStage]);
 
     const formatTime = (seconds: number) => {
         const m = Math.floor(seconds / 60);
@@ -289,7 +284,7 @@ export default function GeneratePage() {
     const handleGenerate = async () => {
         if (!validateForm()) return;
 
-        if (hasAssignedApiKey === false) {
+        if (hasEffectiveApiKey === false) {
             toast.error("No API key available", {
                 description: "Add a personal API key in Settings or configure GEMINI_API_KEY on the backend.",
             });
@@ -316,8 +311,7 @@ export default function GeneratePage() {
                 enforce_twitter_limit: enforceTwitterLimit,
             };
 
-            let output: FinalContentOutput;
-            output = await generateContentStream(payload, (event) => {
+            const output: FinalContentOutput = await generateContentStream(payload, (event) => {
                 setProgressMessage(event.message);
                 const stageIdx = stageIndexById[event.stage];
                 if (typeof stageIdx === "number") {
@@ -464,7 +458,7 @@ export default function GeneratePage() {
                                 <CardDescription>Four agents produce a complete package.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-2">
-                                {pipelineStages.map((stage, idx) => (
+                                {pipelineStages.map((stage) => (
                                     <div key={stage.id} className="group relative flex items-center justify-between rounded-lg border border-transparent border-l-[3px] border-l-muted-foreground bg-card px-3 py-2.5 transition-colors duration-150 hover:border-l-primary hover:bg-secondary/40">
                                         <div className="flex items-center gap-3 min-w-0">
                                             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-secondary shrink-0">
@@ -522,7 +516,18 @@ export default function GeneratePage() {
 
     return (
         <div className="min-h-screen bg-transparent">
-            <PipelineStatus isRunning={isGenerating && !generationError} currentStage={currentStage} stageElapsed={stageElapsed} />
+            <PipelineStatus
+                isRunning={isGenerating}
+                currentStage={currentStage}
+                stageElapsed={stageElapsed}
+                progressMessage={progressMessage}
+                errorMessage={generationError}
+                onReset={() => {
+                    setIsGenerating(false);
+                    setGenerationError(null);
+                    setTimeout(() => topicRef.current?.focus(), 100);
+                }}
+            />
             <header className="app-header-glass sticky top-0 z-30 border-b border-border/80">
                 <div className="flex min-h-20 flex-wrap items-center justify-between gap-3 px-4 py-5 pl-14 md:min-h-24 md:flex-nowrap md:px-6 md:py-6 md:pl-6">
                     <div>

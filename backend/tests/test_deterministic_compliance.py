@@ -19,7 +19,7 @@ def test_banned_term_forces_rejected_with_exact_term_in_notes() -> None:
 def test_twitter_length_violation_rejected_and_trimmed() -> None:
     payload = {
         "linkedin_post": "Professional post.",
-        "twitter_post": "x" * 300,
+        "twitter_post": "x" * 331,
         "image_prompt": "clean office image",
         "compliance_status": "APPROVED",
         "compliance_notes": "Looks good",
@@ -28,8 +28,8 @@ def test_twitter_length_violation_rejected_and_trimmed() -> None:
     result = apply_deterministic_compliance(payload, enforce_twitter_limit=True)
 
     assert result["compliance_status"] == "REJECTED"
-    assert "twitter_post exceeds 280 characters" in result["compliance_notes"]
-    assert len(result["twitter_post"]) == 280
+    assert "twitter_post exceeds 330 characters" in result["compliance_notes"]
+    assert len(result["twitter_post"]) == 330
 
 
 def test_twitter_length_violation_ignored_if_disabled() -> None:

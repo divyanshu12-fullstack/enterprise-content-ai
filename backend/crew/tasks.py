@@ -49,7 +49,7 @@ def build_tasks(
     )
 
     twitter_instruction = "280-character Twitter post (single post, not multi-post thread)." if enforce_twitter_limit else "Make twitter post for a user with 800 char limit(don't exceed this) use relevant and trendy hastags."
-    twitter_compliance_rule = "- Reject if Twitter post is longer than 300 characters.\n" if enforce_twitter_limit else ""
+    twitter_compliance_rule = "- Reject if Twitter post is longer than 330 characters.\n" if enforce_twitter_limit else ""
 
     writing_task = Task(
         description=(
@@ -60,7 +60,8 @@ def build_tasks(
             f"Requested content type: {content_type_instruction}.\n"
             f"Requested tone: {tone_instruction}.\n"
             f"Additional context from user: {additional_context_instruction}.\n"
-            "Provide 5-6 good relevant hastags, for better wider audience reach relevant to the current topic."
+            "Provide 5-6 good relevant hastags, for better wider audience reach relevant to the current topic.\n"
+            "For Twitter, include hashtags only as many as fit within the configured character limit."
         ),
         expected_output=(
             "A response containing clearly labeled LinkedIn and Twitter drafts."

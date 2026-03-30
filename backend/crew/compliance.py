@@ -4,6 +4,7 @@ import re
 from typing import Any
 
 DEFAULT_BANNED_TERMS = ["guarantee", "promise", "investment advice"]
+TWITTER_REJECTION_CHAR_LIMIT = 330
 
 
 def _normalize_terms(blocked_words: list[str] | None) -> list[str]:
@@ -44,9 +45,9 @@ def apply_deterministic_compliance(
         if _contains_term(twitter_post, term):
             violations.append(f"Banned term '{term}' found in twitter_post")
 
-    if enforce_twitter_limit and len(twitter_post) > 300:
-        violations.append("twitter_post exceeds 300 characters")
-        twitter_post = twitter_post[:300]
+    if enforce_twitter_limit and len(twitter_post) > TWITTER_REJECTION_CHAR_LIMIT:
+        violations.append(f"twitter_post exceeds {TWITTER_REJECTION_CHAR_LIMIT} characters")
+        twitter_post = twitter_post[:TWITTER_REJECTION_CHAR_LIMIT]
 
     status = str(payload.get("compliance_status", "")).strip().upper()
     notes = str(payload.get("compliance_notes", "") or "").strip()

@@ -1,7 +1,8 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, Loader2, Lock } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, Lock } from "lucide-react";
 
 const agents = [
   {
@@ -30,22 +31,46 @@ interface PipelineStatusProps {
   isRunning: boolean;
   currentStage: number;
   stageElapsed: number;
+  progressMessage?: string;
+  errorMessage?: string | null;
+  onReset?: () => void;
 }
 
-export function PipelineStatus({ isRunning, currentStage, stageElapsed }: PipelineStatusProps) {
+const formatTime = (seconds: number) => {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+};
+
+export function PipelineStatus({
+  isRunning,
+  currentStage,
+  stageElapsed,
+  progressMessage,
+  errorMessage,
+  onReset,
+}: PipelineStatusProps) {
   if (!isRunning) return null;
 
+  const isHalted = Boolean(errorMessage);
   const isComplete = currentStage >= agents.length;
-  const currentActionText = isComplete ? "Generation complete" : agents[currentStage]?.subtitle || "Finalizing...";
+  const currentActionText = isHalted
+    ? "Pipeline halted"
+    : progressMessage || (isComplete ? "Generation complete" : agents[currentStage]?.subtitle || "Finalizing...");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl rounded-2xl border border-zinc-800/60 bg-[#0a0a0a] p-8 shadow-2xl">
+      <div
+        className={cn(
+          "w-full max-w-3xl rounded-2xl border p-8 shadow-2xl",
+          isHalted ? "border-red-500/40 bg-[#120707]" : "border-zinc-800/60 bg-[#0a0a0a]"
+        )}
+      >
 
         {/* Header Section */}
         <div className="mb-6">
           <h2 className="text-2xl font-bold tracking-tight text-white mb-1">Generating Package</h2>
-          <p className="text-sm text-zinc-400">{currentActionText}</p>
+          <p className={cn("text-sm", isHalted ? "text-red-300" : "text-zinc-400")}>{currentActionText}</p>
         </div>
 
         {/* Progress Bars */}
@@ -58,7 +83,7 @@ export function PipelineStatus({ isRunning, currentStage, stageElapsed }: Pipeli
                 <div
                   className={cn(
                     "h-full rounded-full transition-all duration-500",
-                    completed ? "bg-[#4ade80]" : current ? "bg-white" : "bg-transparent"
+                    completed ? "bg-[#4ade80]" : current && !isHalted ? "bg-white" : current && isHalted ? "bg-red-400" : "bg-transparent"
                   )}
                   style={{ width: completed || current ? "100%" : "0%" }}
                 />
@@ -67,8 +92,25 @@ export function PipelineStatus({ isRunning, currentStage, stageElapsed }: Pipeli
           })}
         </div>
 
+        {isHalted ? (
+          <div className="rounded-2xl border border-red-500/50 bg-red-950/30 p-6 text-center">
+            <div className="mb-3 flex justify-center">
+              <AlertTriangle className="h-10 w-10 text-red-400" />
+            </div>
+            <h3 className="text-3xl font-semibold text-red-300">Pipeline Halted</h3>
+            <p className="mt-3 text-base text-red-200/90">{errorMessage}</p>
+            <Button
+              variant="outline"
+              className="mt-6 h-12 w-full border-red-500 text-red-200 hover:bg-red-500 hover:text-white"
+              onClick={onReset}
+            >
+              Modify Topic & Try Again
+            </Button>
+          </div>
+        ) : null}
+
         {/* Agents List */}
-        <div className="space-y-3">
+        <div className={cn("space-y-3", isHalted && "mt-6")}>
           {agents.map((agent, index) => {
             const isActive = index === currentStage;
             const isFinished = index < currentStage;
@@ -120,7 +162,7 @@ export function PipelineStatus({ isRunning, currentStage, stageElapsed }: Pipeli
                   "font-mono text-sm",
                   isFinished ? "text-[#4ade80]" : isActive ? "text-zinc-400" : "text-zinc-600"
                 )}>
-                  {isActive ? <span>0:{stageElapsed.toString().padStart(2, "0")}</span> : null}
+                  {isActive ? <span>{formatTime(stageElapsed)}</span> : null}
                 </div>
               </div>
             );

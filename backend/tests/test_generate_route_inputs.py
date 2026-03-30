@@ -34,6 +34,7 @@ def test_generate_route_passes_full_input_to_pipeline(monkeypatch) -> None:
         auto_generate_image: bool = True,
         strict_compliance: bool = True,
         blocked_words: list[str] | None = None,
+        enforce_twitter_limit: bool = True,
     ) -> FinalContentOutput:
         captured["topic"] = topic
         captured["audience"] = audience
@@ -49,6 +50,7 @@ def test_generate_route_passes_full_input_to_pipeline(monkeypatch) -> None:
         captured["auto_generate_image"] = str(auto_generate_image)
         captured["strict_compliance"] = str(strict_compliance)
         captured["blocked_words"] = ",".join(blocked_words or [])
+        captured["enforce_twitter_limit"] = str(enforce_twitter_limit)
         return FinalContentOutput(
             linkedin_post="LinkedIn output",
             twitter_post="Twitter output",
@@ -101,6 +103,7 @@ def test_generate_route_passes_full_input_to_pipeline(monkeypatch) -> None:
         "auto_generate_image": "False",
         "strict_compliance": "False",
         "blocked_words": "risk-free,guaranteed returns",
+        "enforce_twitter_limit": "True",
     }
 
 
@@ -122,6 +125,7 @@ def test_generate_route_handles_missing_optional_inputs() -> None:
         auto_generate_image: bool = True,
         strict_compliance: bool = True,
         blocked_words: list[str] | None = None,
+        enforce_twitter_limit: bool = True,
     ) -> FinalContentOutput:
         captured["topic"] = topic
         captured["audience"] = audience

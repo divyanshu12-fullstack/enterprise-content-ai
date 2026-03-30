@@ -9,7 +9,7 @@ from crew.tools import duckduckgo_search_tool
 
 
 def _verbose_enabled() -> bool:
-    return os.getenv("CREW_VERBOSE", "false").lower() in {"1", "true", "yes", "on"}
+    return os.getenv("CREW_VERBOSE", "true").lower() in {"1", "true", "yes", "on"}
 
 
 @lru_cache(maxsize=1)
@@ -29,12 +29,14 @@ def _build_llm(
         model_name = f"gemini/{model_name}"
     if temperature is None:
         temperature = float(os.getenv("GEMINI_TEMPERATURE", "0.2"))
+    llm_timeout = max(5.0, float(os.getenv("LLM_TIMEOUT_SECONDS", "45")))
 
     logger.info(f"[INIT] Gemini model configured: {model_name}")
     return LLM(
         model=model_name,
         api_key=api_key,
         temperature=temperature,
+        timeout=llm_timeout,
     )
 
 
@@ -45,6 +47,7 @@ def build_agents(
 ) -> dict[str, Agent]:
     llm = _build_llm(model_name=model_name, api_key=api_key, temperature=temperature)
     verbose = _verbose_enabled()
+    max_execution_time = max(10, int(os.getenv("AGENT_MAX_EXECUTION_SECONDS", "120")))
 
     researcher = Agent(
         role="Senior Market Researcher",
@@ -61,6 +64,7 @@ def build_agents(
         verbose=verbose,
         allow_delegation=False,
         max_iter=2,
+        max_execution_time=max_execution_time,
     )
 
     writer = Agent(
@@ -78,6 +82,7 @@ def build_agents(
         verbose=verbose,
         allow_delegation=False,
         max_iter=2,
+        max_execution_time=max_execution_time,
     )
 
     brand_governance = Agent(
@@ -91,6 +96,7 @@ def build_agents(
         verbose=verbose,
         allow_delegation=False,
         max_iter=1,
+        max_execution_time=max_execution_time,
     )
 
     visual = Agent(
@@ -107,6 +113,7 @@ def build_agents(
         verbose=verbose,
         allow_delegation=False,
         max_iter=1,
+        max_execution_time=max_execution_time,
     )
 
     return {

@@ -4,6 +4,7 @@ import re
 import time
 import uuid
 import logging
+import socket
 from typing import Any
 from collections.abc import Callable
 
@@ -19,8 +20,25 @@ from crew.tasks import build_tasks
 logger = logging.getLogger(__name__)
 
 
+def _is_retryable_error(exc: Exception) -> bool:
+    if isinstance(exc, (TimeoutError, socket.timeout)):
+        return True
+    name = type(exc).__name__.lower()
+    text = str(exc).lower()
+    return any(token in name or token in text for token in (
+        "timeout",
+        "timed out",
+        "rate limit",
+        "429",
+        "503",
+        "service unavailable",
+        "overloaded",
+        "connection",
+    ))
+
+
 def _verbose_enabled() -> bool:
-    return os.getenv("CREW_VERBOSE", "false").lower() in {"1", "true", "yes", "on"}
+    return os.getenv("CREW_VERBOSE", "true").lower() in {"1", "true", "yes", "on"}
 
 
 def _extract_json_block(text: str) -> dict[str, Any]:
@@ -185,11 +203,28 @@ def run_content_pipeline(
             break
         except (ValueError, ValidationError, json.JSONDecodeError) as exc:
             last_error = exc
-            logger.error(f"[VALIDATION {run_id}] Attempt {attempt}/{attempts} failed: {exc}")
+            logger.error(
+                f"[VALIDATION {run_id}] Attempt {attempt}/{attempts} failed with "
+                f"{type(exc).__name__}: {exc}"
+            )
             if attempt < attempts:
+                if progress_callback:
+                    progress_callback("retry", f"Retrying after {type(exc).__name__}")
                 time.sleep(0.75 * attempt)
             if attempt == attempts:
                 raise
+        except Exception as exc:
+            last_error = exc
+            retryable = _is_retryable_error(exc)
+            logger.error(
+                f"[PIPELINE {run_id}] Attempt {attempt}/{attempts} failed with "
+                f"{type(exc).__name__}: {exc}"
+            )
+            if not retryable or attempt == attempts:
+                raise
+            if progress_callback:
+                progress_callback("retry", f"Transient failure detected ({type(exc).__name__}). Retrying...")
+            time.sleep(min(1.5, 0.75 * attempt))
 
     if validated is None:
         raise last_error or RuntimeError("Pipeline validation failed without a captured error")

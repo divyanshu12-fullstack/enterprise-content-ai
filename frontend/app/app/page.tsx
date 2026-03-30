@@ -442,16 +442,14 @@ export default function GeneratePage() {
                                         key={template}
                                         type="button"
                                         onClick={(e) => {
-                                            const btn = e.currentTarget;
-                                            btn.classList.add("bg-primary/10", "border-primary/30");
-                                            setTimeout(() => btn.classList.remove("bg-primary/10", "border-primary/30"), 300);
+                                            
                                             setTopic(template);
                                             if (typeof window !== "undefined") {
                                                 const event = new CustomEvent("contentai_topic_change", { detail: { hasTopic: true } });
                                                 window.dispatchEvent(event);
                                             }
                                         }}
-                                        className="group flex w-full items-start gap-3 rounded-lg border border-border bg-card px-3 py-2.5 text-left text-sm text-muted-foreground transition-all duration-200 hover:border-foreground/30 hover:text-foreground"
+                                        className="group flex w-full items-start gap-3 rounded-lg border border-border bg-card px-3 py-2.5 text-left text-sm text-muted-foreground transition-all duration-200 hover:border-foreground/30 hover:text-foreground active:scale-[0.98] active:bg-primary/10 active:border-primary/30"
                                     >
                                         <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary/70 transition-colors group-hover:text-primary" />
                                         <span>{template}</span>
@@ -671,19 +669,13 @@ export default function GeneratePage() {
                                 <div
                                     className={cn("space-y-3 rounded-xl border-2 border-dashed p-4 transition-colors duration-200", policyFile ? "border-border bg-secondary/30" : "border-border/50 bg-secondary/10 hover:border-border hover:bg-secondary/30")}
                                     onDragOver={(e) => {
-                                        e.preventDefault();
-                                        e.currentTarget.classList.add("bg-secondary/50");
-                                        e.currentTarget.classList.add("border-border");
-                                    }}
-                                    onDragLeave={(e) => {
-                                        e.preventDefault();
-                                        e.currentTarget.classList.remove("bg-secondary/50");
-                                        e.currentTarget.classList.remove("border-border");
-                                    }}
-                                    onDrop={(e) => {
-                                        e.preventDefault();
-                                        e.currentTarget.classList.remove("bg-secondary/50");
-                                        e.currentTarget.classList.remove("border-border");
+                                            e.preventDefault();
+                                        }}
+                                        onDragLeave={(e) => {
+                                            e.preventDefault();
+                                        }}
+                                        onDrop={(e) => {
+                                            e.preventDefault();
                                         const file = e.dataTransfer.files?.[0];
                                         if (file) {
                                             const fakeEvent = { target: { files: [file] } } as any;

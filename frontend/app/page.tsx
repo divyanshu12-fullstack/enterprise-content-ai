@@ -74,7 +74,7 @@ function Navigation() {
         </div>
 
         <button
-          className="md:hidden"
+          className="md:hidden transition-transform duration-200 active:scale-90"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         >
           {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}

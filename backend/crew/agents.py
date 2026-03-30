@@ -55,6 +55,7 @@ def build_agents(
         llm=llm,
         verbose=True,
         allow_delegation=False,
+        max_iter=3,
     )
 
     writer = Agent(
@@ -71,6 +72,7 @@ def build_agents(
         llm=llm,
         verbose=True,
         allow_delegation=False,
+        max_iter=3,
     )
 
     brand_governance = Agent(
@@ -83,6 +85,7 @@ def build_agents(
         llm=llm,
         verbose=True,
         allow_delegation=False,
+        max_iter=3,
     )
 
     visual = Agent(
@@ -98,12 +101,4 @@ def build_agents(
         llm=llm,
         verbose=True,
         allow_delegation=False,
-    )
-
-    logger.info("[INIT] Agents created: Researcher, Writer, Brand Governance, Visual")
-    return {
-        "researcher": researcher,
-        "writer": writer,
-        "brand_governance": brand_governance,
-        "visual": visual,
-    }
+        max_iter=3,

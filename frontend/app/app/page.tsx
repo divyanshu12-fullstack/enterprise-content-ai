@@ -97,7 +97,7 @@ export default function GeneratePage() {
     const normalizePipelineDetail = (text: string): string => {
         const raw = text.trim();
 
-        if (raw.includes("RESOURCE_EXHAUSTED") || raw.includes("quota") || raw.includes("rate")) {
+        if (raw.includes("RESOURCE_EXHAUSTED") || raw.includes("quota") || raw.includes("rate") || raw.includes("RateLimitError") || raw.includes("429")) {
             const retryMatch = raw.match(/retry in\s+([0-9.]+)s/i) || raw.match(/"retryDelay"\s*:\s*"([0-9]+)s"/i);
             const modelMatch = raw.match(/model[:=]\s*([a-zA-Z0-9._-]+)/i) || raw.match(/"model"\s*:\s*"([^"]+)"/i);
 
@@ -108,6 +108,22 @@ export default function GeneratePage() {
                 return `Rate limit reached for ${model}. Please retry in about ${retrySeconds}s, switch model, or use a key/project with higher quota.`;
             }
             return `Rate limit reached for ${model}. Please wait and retry, switch model, or use a key/project with higher quota.`;
+        }
+
+        if (raw.includes("validation_error") || raw.includes("ValidationError") || raw.includes("JSONDecodeError")) {
+            return "The AI agents produced an output that could not be parsed into the expected format. Please try again with a different topic.";
+        }
+
+        if (raw.includes("API key not valid") || raw.includes("authentication") || raw.includes("invalid api key") || raw.includes("API_KEY_INVALID")) {
+            return "Your API key is invalid or unauthorized. Please verify and update it in the Settings panel.";
+        }
+
+        if (raw.includes("DuckDuckGo") || raw.includes("DDGS") || raw.includes("Search tool")) {
+            return "The search tool was temporarily blocked by the provider due to too many requests. Retrying usually fixes this issue.";
+        }
+
+        if (raw.includes("Failed to open generation stream") || raw.includes("Failed to fetch") || raw.includes("Network Error")) {
+            return "The backend server is unreachable or timed out. Please check your connection or try again later.";
         }
 
         return raw;
@@ -339,7 +355,10 @@ export default function GeneratePage() {
                             {generationError ? (
                                 <div className="rounded-xl border border-destructive/50 bg-destructive/10 p-5 flex flex-col items-center text-center gap-3">
                                     <AlertTriangle className="h-8 w-8 text-destructive" />
-                                    <p className="text-sm font-medium text-destructive">{generationError}</p>
+                                    <div className="space-y-1">
+                                        <p className="font-semibold text-destructive">Pipeline Halted</p>
+                                        <p className="text-sm font-medium text-destructive/90">{generationError}</p>
+                                    </div>
                                     <Button
                                         variant="outline"
                                         className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground mt-2 w-full"
@@ -349,7 +368,7 @@ export default function GeneratePage() {
                                             setTimeout(() => topicRef.current?.focus(), 100);
                                         }}
                                     >
-                                        Try again
+                                        Modify Topic & Try Again
                                     </Button>
                                 </div>
                             ) : (
@@ -442,7 +461,7 @@ export default function GeneratePage() {
                                         key={template}
                                         type="button"
                                         onClick={(e) => {
-                                            
+
                                             setTopic(template);
                                             if (typeof window !== "undefined") {
                                                 const event = new CustomEvent("contentai_topic_change", { detail: { hasTopic: true } });
@@ -669,13 +688,13 @@ export default function GeneratePage() {
                                 <div
                                     className={cn("space-y-3 rounded-xl border-2 border-dashed p-4 transition-colors duration-200", policyFile ? "border-border bg-secondary/30" : "border-border/50 bg-secondary/10 hover:border-border hover:bg-secondary/30")}
                                     onDragOver={(e) => {
-                                            e.preventDefault();
-                                        }}
-                                        onDragLeave={(e) => {
-                                            e.preventDefault();
-                                        }}
-                                        onDrop={(e) => {
-                                            e.preventDefault();
+                                        e.preventDefault();
+                                    }}
+                                    onDragLeave={(e) => {
+                                        e.preventDefault();
+                                    }}
+                                    onDrop={(e) => {
+                                        e.preventDefault();
                                         const file = e.dataTransfer.files?.[0];
                                         if (file) {
                                             const fakeEvent = { target: { files: [file] } } as any;

@@ -153,7 +153,9 @@ def run_content_pipeline(
         verbose=True,
     )
 
-    attempts = 1 + max(0, max_retries) if auto_retry else 1
+    # Protect against excessive retries if database settings allow > 2
+    max_retries = min(max(0, max_retries), 2)
+    attempts = 1 + max_retries if auto_retry else 1
     last_error: Exception | None = None
     validated: FinalContentOutput | None = None
 

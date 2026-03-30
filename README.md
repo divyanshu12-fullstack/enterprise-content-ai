@@ -27,7 +27,7 @@
 
 ---
 
-## System Architecture
+## Agents Description
 
 <img width="915" height="583" alt="image" src="https://github.com/user-attachments/assets/dfc01afd-bb06-4ae8-b905-aa0103999dbb" />
 

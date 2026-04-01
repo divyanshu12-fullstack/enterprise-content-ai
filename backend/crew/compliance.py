@@ -27,6 +27,19 @@ def _contains_term(text: str, term: str) -> bool:
     return bool(pattern.search(text))
 
 
+def _is_alignment_mismatch_note(notes: str) -> bool:
+    normalized = notes.lower()
+    mentions_tone_or_type = any(
+        token in normalized
+        for token in ("content type", "requested content type", "tone", "requested tone")
+    )
+    mentions_mismatch = any(
+        token in normalized
+        for token in ("does not align", "not align", "mismatch", "misaligned")
+    )
+    return mentions_tone_or_type and mentions_mismatch
+
+
 def apply_deterministic_compliance(
     payload: dict[str, Any],
     blocked_words: list[str] | None = None,
@@ -56,6 +69,10 @@ def apply_deterministic_compliance(
         status = "REJECTED"
         notes = "; ".join(violations)
     else:
+        if status == "REJECTED" and _is_alignment_mismatch_note(notes):
+            status = "APPROVED"
+            if notes and not notes.lower().startswith("advisory:"):
+                notes = f"Advisory: {notes}"
         if status not in {"APPROVED", "REJECTED"}:
             status = "APPROVED"
         if not notes:

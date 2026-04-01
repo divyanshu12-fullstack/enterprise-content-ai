@@ -10,7 +10,9 @@ def build_tasks(
     blocked_words: list[str] | None = None,
     strict_compliance: bool = True,
     include_source_urls: bool = True,
-    auto_generate_image: bool = True,    enforce_twitter_limit: bool = True,) -> list[Task]:
+    auto_generate_image: bool = True,
+    enforce_twitter_limit: bool = True,
+) -> list[Task]:
     researcher = agents["researcher"]
     writer = agents["writer"]
     brand_governance = agents["brand_governance"]
@@ -34,7 +36,12 @@ def build_tasks(
         else "Return concise bullet points. Source URLs are optional for this run."
     )
 
-    strict_tone_rule = "- Reject if tone is not professional.\n" if strict_compliance else ""
+    alignment_rules = (
+        f"- Compare output with requested content type: {content_type_instruction}. "
+        "If there is a mismatch, add an advisory note in compliance_notes but do not reject solely for this reason.\n"
+        f"- Compare output with requested tone: {tone_instruction}. "
+        "If there is a mismatch, add an advisory note in compliance_notes but do not reject solely for this reason.\n"
+    )
 
     research_task = Task(
         description=(
@@ -74,10 +81,8 @@ def build_tasks(
         description=(
             "Review the drafts against these hard rules:\n"
             f"- Reject if content includes banned terms: {banned_terms_text}.\n"
-            f"{strict_tone_rule}"
             f"{twitter_compliance_rule}"
-            f"- Also verify the output aligns with requested content type: {content_type_instruction}.\n"
-            f"- Also verify the output aligns with requested tone: {tone_instruction}.\n"
+            f"{alignment_rules}"
             f"- Apply this policy text when making a compliance decision: {policy_text_instruction}.\n"
             "Output a JSON object with keys: linkedin_post, twitter_post, "
             "compliance_status, compliance_notes.\n"

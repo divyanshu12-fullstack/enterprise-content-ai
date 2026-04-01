@@ -1,8 +1,16 @@
 import time
+import threading
+
+import pytest
 
 from fastapi.testclient import TestClient
 
 from crew.schemas import FinalContentOutput
+
+
+@pytest.fixture(autouse=True)
+def _reset_generation_slots(monkeypatch) -> None:
+    monkeypatch.setattr("api.routes.generation_slots", threading.BoundedSemaphore(value=1))
 
 
 def test_generate_success(client: TestClient, auth_headers: dict[str, str], monkeypatch) -> None:

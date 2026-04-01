@@ -61,3 +61,50 @@ def test_custom_blocked_word_is_enforced() -> None:
 
     assert result["compliance_status"] == "REJECTED"
     assert "Banned term 'risk-free'" in result["compliance_notes"]
+
+
+def test_content_type_mismatch_rejection_becomes_advisory_approval() -> None:
+    payload = {
+        "linkedin_post": "Actionable enterprise rollout checklist.",
+        "twitter_post": "Checklist for AI rollout in enterprises.",
+        "image_prompt": "clean office image",
+        "compliance_status": "REJECTED",
+        "compliance_notes": "Content does not align with requested content type 'how-to-guide'.",
+    }
+
+    result = apply_deterministic_compliance(payload)
+
+    assert result["compliance_status"] == "APPROVED"
+    assert result["compliance_notes"].startswith("Advisory:")
+    assert "requested content type" in result["compliance_notes"]
+
+
+def test_tone_mismatch_rejection_becomes_advisory_approval() -> None:
+    payload = {
+        "linkedin_post": "Professional copy that still sounds informal.",
+        "twitter_post": "Casual but useful AI note.",
+        "image_prompt": "clean office image",
+        "compliance_status": "REJECTED",
+        "compliance_notes": "Tone does not align with requested tone 'conversational'.",
+    }
+
+    result = apply_deterministic_compliance(payload)
+
+    assert result["compliance_status"] == "APPROVED"
+    assert result["compliance_notes"].startswith("Advisory:")
+    assert "requested tone" in result["compliance_notes"]
+
+
+def test_hard_violation_overrides_alignment_advisory() -> None:
+    payload = {
+        "linkedin_post": "We guarantee outcomes while matching requested content type.",
+        "twitter_post": "Compliant tweet",
+        "image_prompt": "clean office image",
+        "compliance_status": "REJECTED",
+        "compliance_notes": "Tone does not align with requested tone 'professional'.",
+    }
+
+    result = apply_deterministic_compliance(payload)
+
+    assert result["compliance_status"] == "REJECTED"
+    assert "Banned term 'guarantee'" in result["compliance_notes"]

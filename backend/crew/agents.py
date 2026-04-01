@@ -87,10 +87,14 @@ def build_agents(
 
     brand_governance = Agent(
         role="Chief Legal & Brand Compliance Officer",
-        goal="Review the Writer's drafts against hardcoded company rules.",
+        goal=(
+            "Review the Writer's drafts against hardcoded company rules and provide "
+            "advisory notes for tone/content-type alignment mismatches."
+        ),
         backstory=(
             "You are ruthless. You flag any content that uses banned words like "
-            "'guarantee,' 'promise,' or 'investment advice.' You ensure the tone is professional."
+            "'guarantee,' 'promise,' or 'investment advice.' You record content-type and tone "
+            "misalignment as non-blocking guidance unless another hard rule is violated."
         ),
         llm=llm,
         verbose=verbose,

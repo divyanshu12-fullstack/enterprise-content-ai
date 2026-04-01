@@ -80,7 +80,7 @@ const pipelineStages = [
     { id: "visual", label: "Visual prompt generation", icon: WandSparkles, agent: "Visual Agent" },
 ];
 
-const stageExpectedDurations = [6, 12, 8, 5];
+const stageExpectedDurations = [60, 45, 50, 30];
 
 const stageIndexById: Record<string, number> = {
     init: 0,
@@ -458,7 +458,7 @@ export default function GeneratePage() {
                                 <CardDescription>Four agents produce a complete package.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-2">
-                                {pipelineStages.map((stage) => (
+                                {pipelineStages.map((stage, idx) => (
                                     <div key={stage.id} className="group relative flex items-center justify-between rounded-lg border border-transparent border-l-[3px] border-l-muted-foreground bg-card px-3 py-2.5 transition-colors duration-150 hover:border-l-primary hover:bg-secondary/40">
                                         <div className="flex items-center gap-3 min-w-0">
                                             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-secondary shrink-0">
@@ -471,7 +471,7 @@ export default function GeneratePage() {
                                         </div>
                                         <div className="flex items-center gap-3 shrink-0">
                                             <span className="text-xs font-mono text-muted-foreground opacity-70 group-hover:opacity-100 transition-opacity">
-                                                ~{stage.id === 'research' ? '6s' : stage.id === 'writing' ? '12s' : stage.id === 'compliance' ? '8s' : '5s'}
+                                                ~{stageExpectedDurations[idx] ?? 30}s
                                             </span>
                                         </div>
                                     </div>

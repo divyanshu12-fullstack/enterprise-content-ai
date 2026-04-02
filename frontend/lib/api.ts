@@ -1,5 +1,6 @@
 import axios from "axios";
 import type {
+  ContentType,
   FinalContentOutput,
   GeneratePayload,
   Generation,
@@ -69,7 +70,7 @@ export type SettingsResponse = SettingsPayload & {
 export type GenerationCreatePayload = {
   topic: string;
   audience: string;
-  content_type?: string;
+  content_type?: ContentType;
   tone?: string;
   additional_context?: string;
   linkedin_post?: string;

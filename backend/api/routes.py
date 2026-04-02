@@ -6,6 +6,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from queue import Empty, Queue
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -31,11 +32,23 @@ STREAM_STALL_TIMEOUT_SECONDS = max(10, int(os.getenv("STREAM_STALL_TIMEOUT_SECON
 generation_executor = ThreadPoolExecutor(max_workers=GENERATION_MAX_WORKERS)
 generation_slots = threading.BoundedSemaphore(value=GENERATION_MAX_WORKERS)
 
+ContentType = Literal[
+    "thought-leadership",
+    "product-announcement",
+    "industry-insights",
+    "how-to-guide",
+    "case-study",
+    "company-news",
+    "personal-achievement",
+    "institutional-achievement",
+    "placement-announcement",
+]
+
 
 class GenerateRequest(BaseModel):
     topic: str = Field(..., min_length=3, max_length=300)
     audience: str = Field(..., min_length=2, max_length=120)
-    content_type: str | None = Field(default=None, max_length=80)
+    content_type: ContentType | None = Field(default=None)
     tone: str | None = Field(default=None, max_length=80)
     additional_context: str | None = Field(default=None, max_length=10000)
     policy_text: str | None = Field(default=None, max_length=50000)

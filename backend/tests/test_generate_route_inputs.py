@@ -4,6 +4,9 @@ import os
 import sys
 import types
 
+import pytest
+from pydantic import ValidationError
+
 
 def _import_routes_with_stub(fake_run_content_pipeline):
     os.environ.setdefault("DATABASE_URL", "sqlite:///./test.db")
@@ -158,3 +161,26 @@ def test_generate_route_handles_missing_optional_inputs() -> None:
         "additional_context": None,
         "policy_text": None,
     }
+
+
+def test_generate_request_rejects_invalid_content_type() -> None:
+    routes = _import_routes_with_stub(lambda **kwargs: None)
+
+    with pytest.raises(ValidationError):
+        routes.GenerateRequest(
+            topic="AI ops",
+            audience="marketers",
+            content_type="invalid-content-type",
+        )
+
+
+def test_generate_request_accepts_new_content_type_values() -> None:
+    routes = _import_routes_with_stub(lambda **kwargs: None)
+
+    payload = routes.GenerateRequest(
+        topic="Celebrate my 10 CGPA this semester",
+        audience="students",
+        content_type="personal-achievement",
+    )
+
+    assert payload.content_type == "personal-achievement"

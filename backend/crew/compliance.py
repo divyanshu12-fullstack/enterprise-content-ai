@@ -27,17 +27,27 @@ def _contains_term(text: str, term: str) -> bool:
     return bool(pattern.search(text))
 
 
-def _is_alignment_mismatch_note(notes: str) -> bool:
+def _has_mismatch_signal(notes: str) -> bool:
     normalized = notes.lower()
-    mentions_tone_or_type = any(
-        token in normalized
-        for token in ("content type", "requested content type", "tone", "requested tone")
-    )
-    mentions_mismatch = any(
+    return any(
         token in normalized
         for token in ("does not align", "not align", "mismatch", "misaligned")
     )
-    return mentions_tone_or_type and mentions_mismatch
+
+
+def _is_content_type_mismatch_note(notes: str) -> bool:
+    normalized = notes.lower()
+    mentions_type = any(
+        token in normalized
+        for token in ("content type", "requested content type")
+    )
+    return mentions_type and _has_mismatch_signal(notes)
+
+
+def _is_tone_mismatch_note(notes: str) -> bool:
+    normalized = notes.lower()
+    mentions_tone = any(token in normalized for token in ("tone", "requested tone"))
+    return mentions_tone and _has_mismatch_signal(notes)
 
 
 def apply_deterministic_compliance(
@@ -69,7 +79,11 @@ def apply_deterministic_compliance(
         status = "REJECTED"
         notes = "; ".join(violations)
     else:
-        if status == "REJECTED" and _is_alignment_mismatch_note(notes):
+        if (
+            status == "REJECTED"
+            and _is_tone_mismatch_note(notes)
+            and not _is_content_type_mismatch_note(notes)
+        ):
             status = "APPROVED"
             if notes and not notes.lower().startswith("advisory:"):
                 notes = f"Advisory: {notes}"

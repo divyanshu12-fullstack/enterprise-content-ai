@@ -89,12 +89,12 @@ def build_agents(
         role="Chief Legal & Brand Compliance Officer",
         goal=(
             "Review the Writer's drafts against hardcoded company rules and provide "
-            "advisory notes for tone/content-type alignment mismatches."
+            "hard rejections for content-type misalignment and advisory notes for tone misalignment."
         ),
         backstory=(
             "You are ruthless. You flag any content that uses banned words like "
             "'guarantee,' 'promise,' or 'investment advice.' You record content-type and tone "
-            "misalignment as non-blocking guidance unless another hard rule is violated."
+            "misalignment separately: content-type mismatch is blocking, tone mismatch is non-blocking guidance."
         ),
         llm=llm,
         verbose=verbose,

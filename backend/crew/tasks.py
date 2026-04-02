@@ -38,7 +38,7 @@ def build_tasks(
 
     alignment_rules = (
         f"- Compare output with requested content type: {content_type_instruction}. "
-        "If there is a mismatch, add an advisory note in compliance_notes but do not reject solely for this reason.\n"
+        "If there is a mismatch, reject and state the content-type misalignment in compliance_notes.\n"
         f"- Compare output with requested tone: {tone_instruction}. "
         "If there is a mismatch, add an advisory note in compliance_notes but do not reject solely for this reason.\n"
     )
@@ -47,6 +47,8 @@ def build_tasks(
         description=(
             "Research the topic '{topic}' for audience '{audience}'. Find timely facts, "
             "data points, and trends from reliable web sources.\n"
+            "Prioritize facts that directly support the user's stated topic; avoid replacing "
+            "a personal or individual achievement topic with broad institutional announcements.\n"
             f"{source_instruction}"
         ),
         expected_output=(
@@ -67,6 +69,9 @@ def build_tasks(
             f"Requested content type: {content_type_instruction}.\n"
             f"Requested tone: {tone_instruction}.\n"
             f"Additional context from user: {additional_context_instruction}.\n"
+            "Do not change the core scenario from the user's prompt (for example, a personal "
+            "achievement should not become an institutional placement announcement unless "
+            "explicitly requested).\n"
             "Provide 5-6 good relevant hastags, for better wider audience reach relevant to the current topic.\n"
             "For Twitter, include hashtags only as many as fit within the configured character limit."
         ),

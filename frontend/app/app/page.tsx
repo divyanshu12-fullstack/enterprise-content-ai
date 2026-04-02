@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { createGeneration, generateContentStream, getSettings, uploadPolicyFile } from "@/lib/api";
-import type { FinalContentOutput } from "@/lib/schemas";
+import type { ContentType, FinalContentOutput } from "@/lib/schemas";
 import { PipelineStatus } from "@/components/pipeline-status";
 import axios from "axios";
 
@@ -56,13 +56,16 @@ const audiences = [
     { value: "general", label: "General Audience", icon: Users },
 ];
 
-const contentTypes = [
+const contentTypes: Array<{ value: ContentType; label: string; }> = [
     { value: "thought-leadership", label: "Thought Leadership" },
     { value: "product-announcement", label: "Product Announcement" },
     { value: "industry-insights", label: "Industry Insights" },
     { value: "how-to-guide", label: "How-To Guide" },
     { value: "case-study", label: "Case Study" },
     { value: "company-news", label: "Company News" },
+    { value: "personal-achievement", label: "Personal Achievement" },
+    { value: "institutional-achievement", label: "Institutional Achievement" },
+    { value: "placement-announcement", label: "Placement Announcement" },
 ];
 
 const tones = [
@@ -156,7 +159,7 @@ export default function GeneratePage() {
     const router = useRouter();
     const [topic, setTopic] = useState("");
     const [audience, setAudience] = useState("");
-    const [contentType, setContentType] = useState("");
+    const [contentType, setContentType] = useState<ContentType | "">("");
     const [tone, setTone] = useState("");
     const [enforceTwitterLimit, setEnforceTwitterLimit] = useState(true);
     const [additionalContext, setAdditionalContext] = useState("");
@@ -670,7 +673,7 @@ export default function GeneratePage() {
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div className="space-y-2">
                                         <Label>Content type</Label>
-                                        <Select value={contentType} onValueChange={(val) => { setContentType(val); if (errors.contentType) setErrors({ ...errors, contentType: undefined }); }}>
+                                        <Select value={contentType} onValueChange={(val) => { setContentType(val as ContentType); if (errors.contentType) setErrors({ ...errors, contentType: undefined }); }}>
                                             <SelectTrigger className={cn("border-border bg-input transition-colors", contentType && "border-l-2 border-l-primary", errors.contentType && "border-destructive")}>
                                                 <SelectValue placeholder="Choose a format" />
                                             </SelectTrigger>

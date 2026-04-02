@@ -337,16 +337,18 @@ export default function ApprovalPage() {
                         <DialogTitle>
                             {copyDialog?.type === "linkedin" ? "Ready to Share on LinkedIn" : "Ready to Generate Image"}
                         </DialogTitle>
-                        <DialogDescription className="space-y-3 pt-2">
-                            <p>
-                                {copyDialog?.type === "linkedin"
-                                    ? "We've copied your approved post to the clipboard! LinkedIn doesn't support pre-filling text, so you'll need to manually paste it."
-                                    : "We've copied your image prompt to the clipboard! Since Gemini doesn't support pre-filling the prompt via URL, you'll need to paste it in."}
-                            </p>
-                            <div className="bg-secondary/50 rounded-md p-4 text-sm flex flex-col gap-2 font-mono border text-left">
-                                <div><span className="text-muted-foreground mr-2">1.</span> Click the button below to open the platform.</div>
-                                <div><span className="text-muted-foreground mr-2">2.</span> Focus the text input area.</div>
-                                <div><span className="text-muted-foreground mr-2">3.</span> Press <strong>Ctrl+V</strong> (or Cmd+V) to paste.</div>
+                        <DialogDescription asChild>
+                            <div className="text-muted-foreground text-sm space-y-3 pt-2">
+                                <p>
+                                    {copyDialog?.type === "linkedin"
+                                        ? "We've copied your approved post to the clipboard! LinkedIn doesn't support pre-filling text, so you'll need to manually paste it."
+                                        : "We've copied your image prompt to the clipboard! Since Gemini doesn't support pre-filling the prompt via URL, you'll need to paste it in."}
+                                </p>
+                                <div className="bg-secondary/50 rounded-md p-4 text-sm flex flex-col gap-2 font-mono border text-left">
+                                    <div><span className="text-muted-foreground mr-2">1.</span> Click the button below to open the platform.</div>
+                                    <div><span className="text-muted-foreground mr-2">2.</span> Focus the text input area.</div>
+                                    <div><span className="text-muted-foreground mr-2">3.</span> Press <strong>Ctrl+V</strong> (or Cmd+V) to paste.</div>
+                                </div>
                             </div>
                         </DialogDescription>
                     </DialogHeader>

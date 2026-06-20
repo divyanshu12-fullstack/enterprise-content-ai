@@ -136,6 +136,16 @@ export default function GeneratePage() {
             return "The backend server is unreachable or timed out. Please check your connection or try again later.";
         }
 
+        if (raw.includes("not found") || raw.includes("404")) {
+            const messageMatch = raw.match(/'message':\s*'([^']+)'/) || raw.match(/"message":\s*"([^"]+)"/);
+            if (messageMatch && messageMatch[1]) {
+                return `Model unavailable: ${messageMatch[1]}`;
+            }
+            if (raw.includes("not found")) {
+                return "The requested model was not found. Please select a different model in Settings.";
+            }
+        }
+
         return raw;
     };
 
@@ -186,7 +196,7 @@ export default function GeneratePage() {
         }
 
         const emit = () => {
-            const event = new CustomEvent("contentai_topic_change", { detail: { hasTopic } });
+            const event = new CustomEvent("draftly_topic_change", { detail: { hasTopic } });
             window.dispatchEvent(event);
         };
 
@@ -289,7 +299,7 @@ export default function GeneratePage() {
 
         if (hasEffectiveApiKey === false) {
             toast.error("No API key available", {
-                description: "Add a personal API key in Settings or configure GEMINI_API_KEY on the backend.",
+                description: "Add a personal API key in Settings or configure OPENROUTER_API_KEY on the backend.",
             });
             router.push("/app/settings");
             return;
@@ -346,7 +356,7 @@ export default function GeneratePage() {
             setGenerationError(errorMsg);
 
             if (typeof window !== "undefined") {
-                window.localStorage.setItem("contentai_last_error", JSON.stringify({
+                window.localStorage.setItem("draftly_last_error", JSON.stringify({
                     message: errorMsg,
                     timestamp: new Date().toISOString()
                 }));
@@ -361,7 +371,7 @@ export default function GeneratePage() {
 
     const renderRightPanel = () => {
         return (
-            <div className="space-y-6">
+            <div className="space-y-6 w-full max-w-md mx-auto">
                 {isGenerating ? (
                     <Card className={cn("app-panel shadow-2xl relative overflow-hidden", generationError ? "border-destructive border-2" : "border-primary/30 shadow-primary/5 generating-bg")}>
                         {!generationError && <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-transparent via-primary/50 to-transparent animate-[shimmer_2s_infinite]" />}
@@ -601,7 +611,7 @@ export default function GeneratePage() {
                     }
                 `}} />
 
-                <div className={cn("mx-auto grid w-full max-w-350 gap-6", !isGenerating && "md:grid-cols-[1.8fr_1fr]", isGenerating && "md:grid-cols-[1.8fr_1.8fr]")}>
+                <div className={cn("mx-auto grid w-full max-w-7xl gap-6 items-start", !isGenerating && "md:grid-cols-[1.8fr_1fr]", isGenerating && "md:grid-cols-[1.8fr_1.2fr]")}>
                     <motion.div
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}

@@ -15,7 +15,7 @@ export default function AppLayout({ children }: { children: React.ReactNode; }) 
   useEffect(() => {
     let active = true;
     const run = async () => {
-      const token = window.localStorage.getItem("contentai_access_token");
+      const token = window.localStorage.getItem("draftly_access_token");
       if (!token) {
         router.replace("/login");
         return;
@@ -28,8 +28,8 @@ export default function AppLayout({ children }: { children: React.ReactNode; }) 
         }
       } catch (err: any) {
         if (err?.response?.status === 401) {
-          window.localStorage.removeItem("contentai_access_token");
-          window.localStorage.removeItem("contentai_user_email");
+          window.localStorage.removeItem("draftly_access_token");
+          window.localStorage.removeItem("draftly_user_email");
           router.replace("/login");
         } else {
           // If it's a network error or 500, we don't necessarily want to bump them out 

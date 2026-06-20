@@ -53,8 +53,8 @@ function NavItem({ item, pathname, navLinkClasses, setOpen }: any) {
       const nextHasTopic = Boolean(e?.detail?.hasTopic);
       setHasTopic((prev) => (prev === nextHasTopic ? prev : nextHasTopic));
     };
-    window.addEventListener("contentai_topic_change", handleTopicEvent);
-    return () => window.removeEventListener("contentai_topic_change", handleTopicEvent);
+    window.addEventListener("draftly_topic_change", handleTopicEvent);
+    return () => window.removeEventListener("draftly_topic_change", handleTopicEvent);
   }, [item.href]);
 
   return (
@@ -89,13 +89,13 @@ export function AppSidebar() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      setUserEmail(window.localStorage.getItem("contentai_user_email") ?? "team@company.com");
+      setUserEmail(window.localStorage.getItem("draftly_user_email") ?? "team@company.com");
     }
   }, []);
 
   const handleLogout = () => {
-    window.localStorage.removeItem("contentai_access_token");
-    window.localStorage.removeItem("contentai_user_email");
+    window.localStorage.removeItem("draftly_access_token");
+    window.localStorage.removeItem("draftly_user_email");
     setOpen(false);
     window.location.href = "/";
   };
@@ -159,7 +159,7 @@ export function AppSidebar() {
       <aside className="app-panel fixed left-0 top-0 z-40 hidden h-screen w-64 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar/90 md:flex">
         <div className="flex h-18 flex-col items-start justify-center border-b border-sidebar-border px-6">
           <span className="gradient-text text-sm font-semibold tracking-wide">
-            ContentAI
+            Draftly
           </span>
           <span className="text-xs text-muted-foreground">Enterprise Content Workspace</span>
         </div>
@@ -191,7 +191,7 @@ export function AppSidebar() {
             </SheetHeader>
             <div className="flex h-18 flex-col items-start justify-center border-b border-sidebar-border px-6">
               <span className="gradient-text text-sm font-semibold tracking-wide">
-                ContentAI
+                Draftly
               </span>
               <span className="text-xs text-muted-foreground">Enterprise Content Workspace</span>
             </div>

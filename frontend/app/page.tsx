@@ -43,7 +43,7 @@ function Navigation() {
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl">
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <div className="flex items-center gap-8">
-          <Link href="/" className="text-xl font-bold tracking-tight">ContentAI</Link>
+          <Link href="/" className="text-xl font-bold tracking-tight">Draftly</Link>
 
           <div className="hidden items-center gap-6 md:flex">
             <Link href="#features" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
@@ -378,7 +378,7 @@ function TestimonialsSection() {
       avatar: "MR"
     },
     {
-      quote: "ContentAI transformed our content operations. We went from 2 posts per week to 10+ while maintaining quality and brand consistency.",
+      quote: "Draftly transformed our content operations. We went from 2 posts per week to 10+ while maintaining quality and brand consistency.",
       author: "Emily Watson",
       role: "Content Director",
       company: "CloudVentures",
@@ -398,7 +398,7 @@ function TestimonialsSection() {
             Loved by marketing teams everywhere
           </h2>
           <p className="text-lg text-muted-foreground">
-            See how leading companies are transforming their content operations with ContentAI.
+            See how leading companies are transforming their content operations with Draftly.
           </p>
         </div>
 
@@ -586,7 +586,7 @@ function ContactSection() {
             </h2>
             <p className="mb-8 text-lg text-muted-foreground">
               Join thousands of marketers who are already creating better content faster.
-              Start Automating Your Marketing with ContentAI today.
+              Start Automating Your Marketing with Draftly today.
             </p>
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Button size="lg" asChild className="h-12 px-8">
@@ -618,7 +618,7 @@ function Footer() {
       <div className="mx-auto max-w-7xl px-6">
         <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
           <p className="text-sm text-muted-foreground">
-            2026 ContentAI. All rights reserved.
+            2026 Draftly. All rights reserved.
           </p>
           <div className="flex gap-4">
             <Link href="https://x.com/DivyanshuD1290" className="text-muted-foreground hover:text-foreground">

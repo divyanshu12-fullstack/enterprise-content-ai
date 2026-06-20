@@ -1,7 +1,5 @@
 from datetime import datetime, timezone
 import os
-from typing import Literal
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
@@ -15,7 +13,7 @@ router = APIRouter(prefix="/api/settings", tags=["settings"])
 
 
 class SettingsUpsertRequest(BaseModel):
-    selected_model: Literal["gemini-3-flash-preview", "gemini-3.1-flash-lite-preview", "gemini-3.1-pro-preview", "gemini-2.5-flash"] = "gemini-3-flash-preview"
+    selected_model: str = Field(default="openrouter/auto", max_length=100)
     auto_retry: bool = True
     max_retries: int = Field(default=2, ge=1, le=10)
     include_source_urls: bool = True
@@ -65,7 +63,7 @@ def get_settings(
 ) -> SettingsResponse:
     settings = _get_or_create_settings(session, current_user)
     has_user_api_key = bool(settings.encrypted_api_key)
-    has_default_api_key = bool(os.getenv("GEMINI_API_KEY"))
+    has_default_api_key = bool(os.getenv("OPENROUTER_API_KEY"))
     return SettingsResponse(
         selected_model=settings.selected_model,
         auto_retry=settings.auto_retry,
@@ -109,7 +107,7 @@ def upsert_settings(
         ) from exc
 
     has_user_api_key = bool(settings.encrypted_api_key)
-    has_default_api_key = bool(os.getenv("GEMINI_API_KEY"))
+    has_default_api_key = bool(os.getenv("OPENROUTER_API_KEY"))
     return SettingsResponse(
         **payload.model_dump(),
         has_api_key=has_user_api_key,

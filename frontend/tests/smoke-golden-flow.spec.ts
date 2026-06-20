@@ -59,7 +59,7 @@ test("golden flow: login -> generate -> approval -> publish -> history", async (
                 status: 200,
                 contentType: "application/json",
                 body: JSON.stringify({
-                    selected_model: "gemini-3-flash-preview",
+                    selected_model: "openrouter/auto",
                     auto_retry: true,
                     max_retries: 2,
                     include_source_urls: true,

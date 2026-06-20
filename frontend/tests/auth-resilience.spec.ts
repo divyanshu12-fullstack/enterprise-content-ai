@@ -53,7 +53,7 @@ test("auth resilience: transient /me failure does not clear token after signup",
                 status: 200,
                 contentType: "application/json",
                 body: JSON.stringify({
-                    selected_model: "gemini-3-flash-preview",
+                    selected_model: "openrouter/auto",
                     auto_retry: true,
                     max_retries: 2,
                     include_source_urls: true,
@@ -83,6 +83,6 @@ test("auth resilience: transient /me failure does not clear token after signup",
 
     await expect(page).toHaveURL(/\/app$/);
 
-    const storedToken = await page.evaluate(() => window.localStorage.getItem("contentai_access_token"));
+    const storedToken = await page.evaluate(() => window.localStorage.getItem("draftly_access_token"));
     expect(storedToken).toBe(runState.token);
 });

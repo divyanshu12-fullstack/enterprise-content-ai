@@ -24,7 +24,7 @@ const platformConfig = {
   linkedin: {
     icon: Linkedin,
     name: "LinkedIn",
-    username: "ContentAI",
+    username: "Draftly",
     color: "text-[#0A66C2]",
     bgColor: "bg-[#0A66C2]/10",
     maxChars: null,
@@ -32,7 +32,7 @@ const platformConfig = {
   twitter: {
     icon: Twitter,
     name: "X / Twitter",
-    username: "@contentai",
+    username: "@draftly",
     color: "text-foreground",
     bgColor: "bg-foreground/10",
     maxChars: 280,
@@ -155,7 +155,7 @@ export function ImagePreview({ prompt, className }: ImagePreviewProps) {
           <p className="text-sm text-foreground line-clamp-3 mb-4">{prompt}</p>
           <Button variant="default" size="sm" onClick={handleGenerateImage}>
             <ExternalLink className="mr-1.5 h-3 w-3" />
-            Generate in Gemini
+            Generate Image
           </Button>
         </div>
       </div>
@@ -167,10 +167,10 @@ export function ImagePreview({ prompt, className }: ImagePreviewProps) {
             <DialogDescription asChild>
               <div className="text-muted-foreground text-sm space-y-3 pt-2">
                 <p>
-                  We've copied your image prompt to the clipboard! Since Gemini doesn't support pre-filling the prompt via URL, you'll need to paste it in manually.
+                  We've copied your image prompt to the clipboard! You can paste it into any AI image generator.
                 </p>
                 <div className="bg-secondary/50 rounded-md p-4 text-sm flex flex-col gap-2 font-mono border text-left">
-                  <div><span className="text-muted-foreground mr-2">1.</span> Click the button below to open Gemini.</div>
+                  <div><span className="text-muted-foreground mr-2">1.</span> Click the button below to open an AI image generator.</div>
                   <div><span className="text-muted-foreground mr-2">2.</span> Focus the prompt input area.</div>
                   <div><span className="text-muted-foreground mr-2">3.</span> Press <strong>Ctrl+V</strong> (or Cmd+V) to paste.</div>
                 </div>
@@ -185,7 +185,7 @@ export function ImagePreview({ prompt, className }: ImagePreviewProps) {
                 setDialogOpen(false);
               }}
             >
-              Open Gemini
+              Open Image Generator
               <ExternalLink className="ml-2 h-4 w-4" />
             </Button>
           </DialogFooter>

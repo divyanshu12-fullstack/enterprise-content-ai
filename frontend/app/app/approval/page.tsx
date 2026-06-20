@@ -342,7 +342,7 @@ export default function ApprovalPage() {
                                 <p>
                                     {copyDialog?.type === "linkedin"
                                         ? "We've copied your approved post to the clipboard! LinkedIn doesn't support pre-filling text, so you'll need to manually paste it."
-                                        : "We've copied your image prompt to the clipboard! Since Gemini doesn't support pre-filling the prompt via URL, you'll need to paste it in."}
+                                        : "We've copied your image prompt to the clipboard! You can paste it into any AI image generator."}
                                 </p>
                                 <div className="bg-secondary/50 rounded-md p-4 text-sm flex flex-col gap-2 font-mono border text-left">
                                     <div><span className="text-muted-foreground mr-2">1.</span> Click the button below to open the platform.</div>
@@ -360,7 +360,7 @@ export default function ApprovalPage() {
                                 setCopyDialog(null);
                             }}
                         >
-                            Open {copyDialog?.type === "linkedin" ? "LinkedIn" : "Gemini"}
+                            Open {copyDialog?.type === "linkedin" ? "LinkedIn" : "Image Generator"}
                             <ExternalLink className="ml-2 h-4 w-4" />
                         </Button>
                     </DialogFooter>

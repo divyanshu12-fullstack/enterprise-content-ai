@@ -81,8 +81,8 @@ export default function LoginPage() {
         try {
             const fn = mode === "login" ? login : signup;
             const response = await fn({ email, password });
-            window.localStorage.setItem("contentai_access_token", response.access_token);
-            window.localStorage.setItem("contentai_user_email", response.email);
+            window.localStorage.setItem("draftly_access_token", response.access_token);
+            window.localStorage.setItem("draftly_user_email", response.email);
             router.replace("/app");
         } catch (err: unknown) {
             if (axios.isAxiosError(err)) {
@@ -146,7 +146,7 @@ export default function LoginPage() {
                     <div>
                         <div className="mb-10 flex items-center gap-2">
                             <Hexagon className="h-6 w-6 text-foreground" />
-                            <span className="font-heading text-xl font-medium tracking-tight text-foreground">ContentAI</span>
+                            <span className="font-heading text-xl font-medium tracking-tight text-foreground">Draftly</span>
                         </div>
 
                         <p className="text-muted-foreground">

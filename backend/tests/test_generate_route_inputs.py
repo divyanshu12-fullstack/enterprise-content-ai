@@ -77,7 +77,7 @@ def test_generate_route_passes_full_input_to_pipeline(monkeypatch) -> None:
         routes,
         "_resolve_runtime_settings",
         lambda session, current_user: routes.RuntimeSettings(
-            model_name="gemini-3.1-pro-preview",
+            model_name="google/gemini-2.5-pro",
             api_key="user-key-1234567890",
             auto_retry=False,
             max_retries=1,
@@ -98,7 +98,7 @@ def test_generate_route_passes_full_input_to_pipeline(monkeypatch) -> None:
         "tone": "professional",
         "additional_context": "Focus on measurable outcomes and governance.",
         "policy_text": "Never mention guaranteed returns.",
-        "model_name": "gemini-3.1-pro-preview",
+        "model_name": "google/gemini-2.5-pro",
         "api_key": "user-key-1234567890",
         "auto_retry": "False",
         "max_retries": "1",

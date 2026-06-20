@@ -1,42 +1,68 @@
 import logging
 import os
-from functools import lru_cache
 from crewai import Agent, LLM
 
 logger = logging.getLogger(__name__)
 
 from crew.tools import duckduckgo_search_tool
 
+# ---------------------------------------------------------------------------
+# Free models available on OpenRouter (no user API key required)
+# "openrouter/auto" is a special router that auto-selects the best
+# available free model — it never goes stale.
+# ---------------------------------------------------------------------------
+FREE_MODELS = [
+    "openrouter/auto",
+    "google/gemini-2.5-flash:free",
+    "deepseek/deepseek-chat-v3:free",
+    "qwen/qwen3-235b-a22b:free",
+    "microsoft/mai-ds-r1:free",
+]
+
+DEFAULT_MODEL = "openrouter/auto"
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+
 
 def _verbose_enabled() -> bool:
     return os.getenv("CREW_VERBOSE", "true").lower() in {"1", "true", "yes", "on"}
 
 
-@lru_cache(maxsize=1)
+def is_free_model(model_name: str) -> bool:
+    """Check whether a model ID is a free OpenRouter model."""
+    name = model_name.strip()
+    return name.endswith(":free") or name == "openrouter/auto"
+
+
 def _build_llm(
     model_name: str | None = None,
     api_key: str | None = None,
     temperature: float | None = None,
 ) -> LLM:
-    api_key = api_key or os.getenv("GEMINI_API_KEY")
+    api_key = api_key or os.getenv("OPENROUTER_API_KEY")
     if not api_key:
         raise ValueError(
-            "GEMINI_API_KEY is not set. Add it to your environment before running the crew."
+            "OPENROUTER_API_KEY is not set. Add it to your environment before running the crew."
         )
 
-    model_name = model_name or os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
-    if not model_name.startswith("gemini/"):
-        model_name = f"gemini/{model_name}"
+    model_name = model_name or os.getenv("OPENROUTER_MODEL", DEFAULT_MODEL)
+
+    # CrewAI uses litellm under the hood — prefix with openrouter/ so it
+    # routes through the OpenRouter gateway correctly.
+    # Skip prefixing if already prefixed or if using the special auto router.
+    if not model_name.startswith("openrouter/"):
+        model_name = f"openrouter/{model_name}"
+
     if temperature is None:
-        temperature = float(os.getenv("GEMINI_TEMPERATURE", "0.2"))
+        temperature = float(os.getenv("OPENROUTER_TEMPERATURE", "0.2"))
     llm_timeout = max(5.0, float(os.getenv("LLM_TIMEOUT_SECONDS", "45")))
 
-    logger.info(f"[INIT] Gemini model configured: {model_name}")
+    logger.info(f"[INIT] OpenRouter model configured: {model_name}")
     return LLM(
         model=model_name,
         api_key=api_key,
         temperature=temperature,
         timeout=llm_timeout,
+        base_url=OPENROUTER_BASE_URL,
     )
 
 

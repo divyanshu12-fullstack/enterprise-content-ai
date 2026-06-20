@@ -16,10 +16,10 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'ContentAI - AI Marketing Automation Platform',
+  title: 'Draftly - AI Marketing Automation Platform',
   description: 'Automate your marketing with AI-powered multi-agent content generation. Create compliant LinkedIn and Twitter posts in seconds with brand governance built-in.',
   keywords: ['AI', 'marketing automation', 'content generation', 'LinkedIn', 'Twitter', 'social media', 'multi-agent AI'],
-  authors: [{ name: 'ContentAI' }],
+  authors: [{ name: 'Draftly' }],
   generator: 'v0.app',
   icons: {
     icon: [

@@ -15,7 +15,7 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
-    const token = window.localStorage.getItem("contentai_access_token");
+    const token = window.localStorage.getItem("draftly_access_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -28,8 +28,8 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       if (typeof window !== "undefined") {
-        window.localStorage.removeItem("contentai_access_token");
-        window.localStorage.removeItem("contentai_user_email");
+        window.localStorage.removeItem("draftly_access_token");
+        window.localStorage.removeItem("draftly_user_email");
         if (window.location.pathname.startsWith("/app")) {
           window.location.href = "/login";
         }
@@ -120,7 +120,7 @@ export async function generateContentStream(
   payload: GeneratePayload,
   onProgress: (event: ProgressEvent) => void,
 ): Promise<FinalContentOutput> {
-  const token = typeof window !== "undefined" ? window.localStorage.getItem("contentai_access_token") : null;
+  const token = typeof window !== "undefined" ? window.localStorage.getItem("draftly_access_token") : null;
   const response = await fetch(`${api.defaults.baseURL}/api/generate/stream`, {
     method: "POST",
     headers: {
@@ -133,8 +133,8 @@ export async function generateContentStream(
   if (!response.ok || !response.body) {
     if (response.status === 401) {
       if (typeof window !== "undefined") {
-        window.localStorage.removeItem("contentai_access_token");
-        window.localStorage.removeItem("contentai_user_email");
+        window.localStorage.removeItem("draftly_access_token");
+        window.localStorage.removeItem("draftly_user_email");
         if (window.location.pathname.startsWith("/app")) {
           window.location.href = "/login";
         }

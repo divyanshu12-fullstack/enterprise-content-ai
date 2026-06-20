@@ -12,6 +12,8 @@ import {
     Save,
     Shield,
     SlidersHorizontal,
+    CircleDollarSign,
+    Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -22,22 +24,43 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { clearGenerations, getSettings, setApiKey, testApiKey, updateSettings } from "@/lib/api";
 
-const models = [
-    { value: "gemini-3-flash-preview", label: "Gemini 3.1 Flash", description: "Fast, newest generation" },
-    { value: "gemini-3.1-flash-lite-preview", label: "Gemini 3.1 Flash Lite", description: "Fastest and most cost-efficient" },
-    { value: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro", description: "Highest quality, newest generation" },
-    { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", description: "Stable fallback for compatibility" },
+/* ------------------------------------------------------------------ */
+/*  Model definitions — free (no key) vs paid (user key required)     */
+/* ------------------------------------------------------------------ */
+
+const freeModels = [
+    { value: "openrouter/auto", label: "Auto (Best Free)", description: "Auto-selects the best available free model" },
+    { value: "google/gemini-2.5-flash:free", label: "Gemini 2.5 Flash", description: "Google's fast model" },
+    { value: "deepseek/deepseek-chat-v3:free", label: "DeepSeek V3", description: "Strong reasoning model" },
+    { value: "qwen/qwen3-235b-a22b:free", label: "Qwen 3 235B", description: "Alibaba's large model" },
+    { value: "microsoft/mai-ds-r1:free", label: "Microsoft MAI DS R1", description: "Microsoft's reasoning model" },
 ];
+
+const paidModels = [
+    { value: "openai/gpt-4o", label: "GPT-4o", description: "OpenAI's flagship model" },
+    { value: "anthropic/claude-sonnet-4", label: "Claude Sonnet 4", description: "Anthropic's balanced model" },
+    { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro", description: "Google's most capable" },
+    { value: "deepseek/deepseek-r1", label: "DeepSeek R1", description: "Advanced reasoning" },
+    { value: "x-ai/grok-3", label: "Grok 3", description: "xAI's latest model" },
+];
+
+const allModels = [...freeModels, ...paidModels];
+
+const DEFAULT_MODEL = "openrouter/auto";
+
+function isPaidModel(modelValue: string): boolean {
+    return !modelValue.endsWith(":free") && modelValue !== "openrouter/auto";
+}
 
 const blockedWords = ["guarantee", "promise", "investment advice", "guaranteed returns", "risk-free", "100% safe"];
 
 export default function SettingsPage() {
     const [apiKey, setApiKeyValue] = useState("");
     const [showApiKey, setShowApiKey] = useState(false);
-    const [selectedModel, setSelectedModel] = useState("gemini-3-flash-preview");
+    const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
     const [customBlockedWords, setCustomBlockedWords] = useState("");
     const [isSaving, setIsSaving] = useState(false);
     const [isTestingApiKey, setIsTestingApiKey] = useState(false);
@@ -55,6 +78,8 @@ export default function SettingsPage() {
         strictCompliance: true,
     });
 
+    const selectedIsPaid = isPaidModel(selectedModel);
+
     useEffect(() => {
         let active = true;
         const load = async () => {
@@ -62,7 +87,11 @@ export default function SettingsPage() {
                 const settings = await getSettings();
                 if (!active) return;
 
-                setSelectedModel(settings.selected_model);
+                // If the saved model is not in our list (e.g. old gemini model),
+                // fall back to the default.
+                const knownModel = allModels.find((m) => m.value === settings.selected_model);
+                setSelectedModel(knownModel ? settings.selected_model : DEFAULT_MODEL);
+
                 setGenerationSettings({
                     autoRetry: settings.auto_retry,
                     maxRetries: settings.max_retries,
@@ -84,6 +113,14 @@ export default function SettingsPage() {
     }, []);
 
     const handleSave = async () => {
+        // Block saving a paid model without an API key
+        if (selectedIsPaid && !apiKey.trim() && !hasStoredApiKey) {
+            toast.error("API key required", {
+                description: "You must provide your own OpenRouter API key to use paid models.",
+            });
+            return;
+        }
+
         setIsSaving(true);
         try {
             await updateSettings({
@@ -145,7 +182,7 @@ export default function SettingsPage() {
     };
 
     const handleResetDefaults = async () => {
-        setSelectedModel("gemini-3-flash-preview");
+        setSelectedModel(DEFAULT_MODEL);
         setGenerationSettings({
             autoRetry: true,
             maxRetries: 2,
@@ -164,6 +201,9 @@ export default function SettingsPage() {
         }
         toast.success("Defaults restored and API key cleared");
     };
+
+    // Find the currently-selected model's metadata for the description line
+    const selectedModelMeta = allModels.find((m) => m.value === selectedModel);
 
     return (
         <div className="min-h-screen bg-transparent">
@@ -197,11 +237,11 @@ export default function SettingsPage() {
                                     <Key className="h-4 w-4" />
                                     API access
                                 </CardTitle>
-                                <CardDescription>Set your Gemini API key and model choice</CardDescription>
+                                <CardDescription>Set your OpenRouter API key and model choice</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <div className="space-y-2">
-                                    <Label htmlFor="apiKey">Gemini API key</Label>
+                                    <Label htmlFor="apiKey">OpenRouter API key</Label>
                                     <div className="flex flex-col gap-2 sm:flex-row">
                                         <div className="relative flex-1">
                                             <Input
@@ -247,18 +287,19 @@ export default function SettingsPage() {
                                         </div>
                                     )}
                                     <a
-                                        href="https://aistudio.google.com/apikey"
+                                        href="https://openrouter.ai/settings/keys"
                                         target="_blank"
                                         rel="noreferrer"
                                         className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
                                     >
                                         <ExternalLink className="h-3 w-3" />
-                                        Open Google AI Studio
+                                        Open OpenRouter Keys
                                     </a>
                                 </div>
 
                                 <Separator />
 
+                                {/* Model selector with free/paid groups */}
                                 <div className="space-y-2">
                                     <Label>Model</Label>
                                     <Select value={selectedModel} onValueChange={setSelectedModel}>
@@ -266,17 +307,75 @@ export default function SettingsPage() {
                                             <SelectValue placeholder="Choose model" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {models.map((model) => (
-                                                <SelectItem key={model.value} value={model.value}>
-                                                    {model.label}
-                                                </SelectItem>
-                                            ))}
+                                            <SelectGroup>
+                                                <SelectLabel className="flex items-center gap-1.5 text-xs font-semibold text-emerald-500">
+                                                    <Sparkles className="h-3 w-3" />
+                                                    Free Models
+                                                </SelectLabel>
+                                                {freeModels.map((model) => (
+                                                    <SelectItem key={model.value} value={model.value}>
+                                                        <span className="flex items-center gap-2">
+                                                            {model.label}
+                                                            <Badge variant="outline" className="ml-1 border-emerald-500/40 bg-emerald-500/10 text-emerald-500 text-[10px] px-1.5 py-0">
+                                                                Free
+                                                            </Badge>
+                                                        </span>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectGroup>
+                                            <SelectGroup>
+                                                <SelectLabel className="flex items-center gap-1.5 text-xs font-semibold text-amber-500">
+                                                    <CircleDollarSign className="h-3 w-3" />
+                                                    Paid Models — Requires API Key
+                                                </SelectLabel>
+                                                {paidModels.map((model) => (
+                                                    <SelectItem key={model.value} value={model.value}>
+                                                        <span className="flex items-center gap-2">
+                                                            {model.label}
+                                                            <Badge variant="outline" className="ml-1 border-amber-500/40 bg-amber-500/10 text-amber-500 text-[10px] px-1.5 py-0">
+                                                                Paid
+                                                            </Badge>
+                                                        </span>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectGroup>
                                         </SelectContent>
                                     </Select>
                                     <p className="text-xs text-muted-foreground">
-                                        {models.find((item) => item.value === selectedModel)?.description}
+                                        {selectedModelMeta?.description ?? selectedModel}
                                     </p>
                                 </div>
+
+                                {/* Billing warning for paid models */}
+                                {selectedIsPaid && (
+                                    <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
+                                        <p className="flex items-start gap-2 text-sm font-medium text-amber-600 dark:text-amber-400">
+                                            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                                            <span>
+                                                This model is paid. Usage will be billed to your OpenRouter API key.
+                                                Make sure you have sufficient credits on{" "}
+                                                <a
+                                                    href="https://openrouter.ai/settings/credits"
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="underline underline-offset-2 hover:text-amber-700 dark:hover:text-amber-300"
+                                                >
+                                                    your OpenRouter account
+                                                </a>.
+                                            </span>
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Error if paid model selected but no key */}
+                                {selectedIsPaid && !hasStoredApiKey && !apiKey.trim() && (
+                                    <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3">
+                                        <p className="flex items-center gap-2 text-sm font-medium text-destructive">
+                                            <AlertTriangle className="h-4 w-4 shrink-0" />
+                                            You must provide your own OpenRouter API key to use paid models.
+                                        </p>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
 

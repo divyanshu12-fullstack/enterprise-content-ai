@@ -89,8 +89,8 @@ def _resolve_runtime_settings(
     current_user: User | None,
 ) -> RuntimeSettings:
     defaults = RuntimeSettings(
-        model_name=os.getenv("GEMINI_MODEL", "gemini-3-flash-preview"),
-        api_key=os.getenv("GEMINI_API_KEY"),
+        model_name=os.getenv("OPENROUTER_MODEL", "openrouter/auto"),
+        api_key=os.getenv("OPENROUTER_API_KEY"),
         auto_retry=True,
         max_retries=1,
         include_source_urls=True,

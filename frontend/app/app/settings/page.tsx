@@ -32,24 +32,21 @@ import { clearGenerations, getSettings, setApiKey, testApiKey, updateSettings } 
 /* ------------------------------------------------------------------ */
 
 const freeModels = [
-    { value: "openrouter/auto", label: "Auto (Best Free)", description: "Auto-selects the best available free model" },
-    { value: "google/gemini-2.5-flash:free", label: "Gemini 2.5 Flash", description: "Google's fast model" },
-    { value: "deepseek/deepseek-chat-v3:free", label: "DeepSeek V3", description: "Strong reasoning model" },
-    { value: "qwen/qwen3-235b-a22b:free", label: "Qwen 3 235B", description: "Alibaba's large model" },
-    { value: "microsoft/mai-ds-r1:free", label: "Microsoft MAI DS R1", description: "Microsoft's reasoning model" },
+    { value: "google/gemma-4-31b-it:free", label: "Gemma 4 31B", description: "Google's lightweight efficient model" },
+    { value: "nex-agi/nex-n2-pro:free", label: "Nex-N2-Pro", description: "Nex AGI's powerful agentic MoE" },
+    { value: "meta-llama/llama-3.3-70b-instruct:free", label: "Llama 3.3 70B Instruct", description: "Meta's highly capable model" },
 ];
 
 const paidModels = [
-    { value: "openai/gpt-4o", label: "GPT-4o", description: "OpenAI's flagship model" },
-    { value: "anthropic/claude-sonnet-4", label: "Claude Sonnet 4", description: "Anthropic's balanced model" },
-    { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro", description: "Google's most capable" },
-    { value: "deepseek/deepseek-r1", label: "DeepSeek R1", description: "Advanced reasoning" },
-    { value: "x-ai/grok-3", label: "Grok 3", description: "xAI's latest model" },
+    { value: "google/gemma-4-26b-a4b-it", label: "Gemma 4 26B A4B", description: "Google's cheap paid alternate model" },
+    { value: "openai/chatgpt-4o-latest", label: "GPT Chat Latest", description: "OpenAI's flagship model" },
+    { value: "anthropic/claude-3.5-haiku", label: "Claude Haiku Latest", description: "Anthropic's fastest model" },
+    { value: "deepseek/deepseek-v4-pro", label: "DeepSeek V4 Pro", description: "DeepSeek's advanced MoE reasoning" },
 ];
 
 const allModels = [...freeModels, ...paidModels];
 
-const DEFAULT_MODEL = "openrouter/auto";
+const DEFAULT_MODEL = "google/gemma-4-31b-it:free";
 
 function isPaidModel(modelValue: string): boolean {
     return !modelValue.endsWith(":free") && modelValue !== "openrouter/auto";

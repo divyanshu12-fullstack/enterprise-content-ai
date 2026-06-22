@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import Column, JSON, Text
 from sqlmodel import Field, SQLModel
+from config import DEFAULT_MODEL
 
 
 def utcnow() -> datetime:
@@ -28,7 +29,7 @@ class UserSettings(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     user_id: uuid.UUID = Field(foreign_key="users.id", unique=True, index=True)
 
-    selected_model: str = Field(default="openrouter/auto", max_length=100)
+    selected_model: str = Field(default=DEFAULT_MODEL, max_length=100)
     auto_retry: bool = Field(default=True)
     max_retries: int = Field(default=2, ge=1, le=10)
     include_source_urls: bool = Field(default=True)

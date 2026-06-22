@@ -62,7 +62,7 @@ export function PipelineStatus({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div
         className={cn(
-          "w-full max-w-3xl rounded-2xl border p-8 shadow-2xl",
+          "w-full max-w-3xl rounded-2xl border p-6 shadow-2xl max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]",
           isHalted ? "border-red-500/40 bg-[#120707]" : "border-zinc-800/60 bg-[#0a0a0a]"
         )}
       >
@@ -93,15 +93,15 @@ export function PipelineStatus({
         </div>
 
         {isHalted ? (
-          <div className="rounded-2xl border border-red-500/50 bg-red-950/30 p-6 text-center">
+          <div className="rounded-2xl border border-red-500/50 bg-red-950/30 p-4 text-center">
             <div className="mb-3 flex justify-center">
-              <AlertTriangle className="h-10 w-10 text-red-400" />
+              <AlertTriangle className="h-7 w-7 text-red-400" />
             </div>
-            <h3 className="text-3xl font-semibold text-red-300">Pipeline Halted</h3>
-            <p className="mt-3 text-base text-red-200/90">{errorMessage}</p>
+            <h3 className="text-xl font-semibold text-red-300">Pipeline Halted</h3>
+            <p className="mt-3 text-sm text-red-200/90 max-h-20 overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">{errorMessage}</p>
             <Button
               variant="outline"
-              className="mt-6 h-12 w-full border-red-500 text-red-200 hover:bg-red-500 hover:text-white"
+              className="mt-4 h-10 w-full border-red-500 text-red-200 hover:bg-red-500 hover:text-white"
               onClick={onReset}
             >
               Modify Topic & Try Again

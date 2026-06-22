@@ -119,6 +119,7 @@ export async function generateContent(payload: GeneratePayload): Promise<FinalCo
 export async function generateContentStream(
   payload: GeneratePayload,
   onProgress: (event: ProgressEvent) => void,
+  signal?: AbortSignal,
 ): Promise<FinalContentOutput> {
   const token = typeof window !== "undefined" ? window.localStorage.getItem("draftly_access_token") : null;
   const response = await fetch(`${api.defaults.baseURL}/api/generate/stream`, {
@@ -128,6 +129,7 @@ export async function generateContentStream(
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(payload),
+    signal,
   });
 
   if (!response.ok || !response.body) {

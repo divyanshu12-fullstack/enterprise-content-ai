@@ -184,6 +184,7 @@ export default function GeneratePage() {
     const [hasAssignedApiKey, setHasAssignedApiKey] = useState<boolean | null>(null);
     const [hasEffectiveApiKey, setHasEffectiveApiKey] = useState<boolean | null>(null);
     const topicEventTimeoutRef = useRef<number | null>(null);
+    const abortControllerRef = useRef<AbortController | null>(null);
 
     const topicRef = useRef<HTMLTextAreaElement>(null);
 
@@ -227,6 +228,21 @@ export default function GeneratePage() {
             setStageElapsed(0);
         }
     }, [isGenerating, currentStage, generationError]);
+
+    useEffect(() => {
+        if (isGenerating && stageElapsed >= 90) {
+            setIsGenerating(false);
+            setGenerationError(null);
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+                abortControllerRef.current = null;
+            }
+            toast.error("Pipeline Timeout", {
+                description: "Current model is facing higher request than usual.",
+            });
+            setTimeout(() => topicRef.current?.focus(), 100);
+        }
+    }, [stageElapsed, isGenerating]);
 
     useEffect(() => {
         let active = true;
@@ -314,6 +330,8 @@ export default function GeneratePage() {
         try {
             const started = Date.now();
 
+            abortControllerRef.current = new AbortController();
+
             const payload = {
                 topic,
                 audience,
@@ -330,7 +348,7 @@ export default function GeneratePage() {
                 if (typeof stageIdx === "number") {
                     setCurrentStage(stageIdx);
                 }
-            });
+            }, abortControllerRef.current.signal);
 
             const record = await createGeneration({
                 topic,
@@ -351,7 +369,10 @@ export default function GeneratePage() {
                 description: `Completed in ${Math.max(1, Math.round((Date.now() - started) / 1000))} seconds`,
             });
             router.push(`/app/approval?id=${record.id}`);
-        } catch (error: unknown) {
+        } catch (error: any) {
+            // If we aborted due to timeout, ignore the error since the toast is already shown
+            if (error.name === "AbortError") return;
+
             const errorMsg = resolveErrorMessage(error);
             setGenerationError(errorMsg);
 
@@ -366,6 +387,8 @@ export default function GeneratePage() {
                 description: errorMsg,
             });
             // Do not reset isGenerating so the error is inline
+        } finally {
+            abortControllerRef.current = null;
         }
     };
 

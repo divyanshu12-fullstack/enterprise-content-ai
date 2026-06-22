@@ -21,6 +21,7 @@ from db.models import User, UserSettings
 from db.security import decrypt_secret
 from db.session import get_session
 from sqlmodel import Session, select
+from config import DEFAULT_MODEL
 
 router = APIRouter(prefix="/api", tags=["content"])
 
@@ -89,7 +90,7 @@ def _resolve_runtime_settings(
     current_user: User | None,
 ) -> RuntimeSettings:
     defaults = RuntimeSettings(
-        model_name=os.getenv("OPENROUTER_MODEL", "openrouter/auto"),
+        model_name=os.getenv("OPENROUTER_MODEL", DEFAULT_MODEL),
         api_key=os.getenv("OPENROUTER_API_KEY"),
         auto_retry=True,
         max_retries=1,

@@ -8,12 +8,13 @@ from api.deps import get_current_user
 from db.models import User, UserSettings
 from db.security import decrypt_secret, encrypt_secret
 from db.session import get_session
+from config import DEFAULT_MODEL
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
 
 class SettingsUpsertRequest(BaseModel):
-    selected_model: str = Field(default="openrouter/auto", max_length=100)
+    selected_model: str = Field(default=DEFAULT_MODEL, max_length=100)
     auto_retry: bool = True
     max_retries: int = Field(default=2, ge=1, le=10)
     include_source_urls: bool = True

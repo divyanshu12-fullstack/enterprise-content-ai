@@ -59,6 +59,42 @@ const defaultResult: GenerationResult = {
     compliance_notes: "Content meets configured compliance rules.",
 };
 
+const formatComplianceNotes = (notes: string) => {
+    // Check if it looks like a dictionary or JSON string
+    if (notes.startsWith('{') && notes.endsWith('}')) {
+        try {
+            // Some models output python dicts with single quotes. Let's try relaxing it for display.
+            const inner = notes.slice(1, -1);
+            // Split by comma followed by quotes, a rough heuristic
+            const items = inner.split(/,\s*(?=['"][\w]+['"]\s*:)/);
+            if (items.length > 0) {
+                return (
+                    <ul className="list-disc pl-4 mt-2 space-y-1 text-sm text-muted-foreground">
+                        {items.map((item, idx) => {
+                            const parts = item.split(':');
+                            if (parts.length >= 2) {
+                                const keyPart = parts[0];
+                                const valuePart = parts.slice(1).join(':');
+                                const key = keyPart.replace(/['"]/g, '').trim().replace(/_/g, ' ');
+                                const value = valuePart.replace(/^['"]|['"]$/g, '').trim();
+                                return (
+                                    <li key={idx}>
+                                        <span className="font-medium capitalize">{key}:</span> {value}
+                                    </li>
+                                );
+                            }
+                            return <li key={idx}>{item}</li>;
+                        })}
+                    </ul>
+                );
+            }
+        } catch (e) {
+            // fallback to paragraph
+        }
+    }
+    return <p className="mt-1 text-sm text-muted-foreground">{notes}</p>;
+};
+
 export default function ApprovalPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -195,7 +231,7 @@ export default function ApprovalPage() {
                                     <p className="text-sm font-medium">
                                         Compliance status: <span className="ml-1">{result.compliance_status}</span>
                                     </p>
-                                    <p className="mt-1 text-sm text-muted-foreground">{result.compliance_notes}</p>
+                                    {formatComplianceNotes(result.compliance_notes)}
                                 </div>
                             </CardContent>
                         </Card>

@@ -1,10 +1,11 @@
 from fastapi.testclient import TestClient
+from config import DEFAULT_MODEL
 
 
 def test_settings_get_update_and_api_key(client: TestClient, auth_headers: dict[str, str]) -> None:
     initial = client.get("/api/settings", headers=auth_headers)
     assert initial.status_code == 200
-    assert initial.json()["selected_model"] == "openrouter/auto"
+    assert initial.json()["selected_model"] == DEFAULT_MODEL
     assert initial.json()["has_api_key"] is False
 
     update_payload = {

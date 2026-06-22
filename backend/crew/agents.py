@@ -5,6 +5,7 @@ from crewai import Agent, LLM
 logger = logging.getLogger(__name__)
 
 from crew.tools import duckduckgo_search_tool
+from config import DEFAULT_MODEL
 
 # ---------------------------------------------------------------------------
 # Free models available on OpenRouter (no user API key required)
@@ -19,7 +20,6 @@ FREE_MODELS = [
     "microsoft/mai-ds-r1:free",
 ]
 
-DEFAULT_MODEL = "openrouter/auto"
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 

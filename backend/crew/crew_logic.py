@@ -136,7 +136,7 @@ def run_content_pipeline(
     if progress_callback:
         progress_callback("init", "Initializing generation pipeline")
 
-    agents = build_agents(model_name=model_name, api_key=api_key)
+    agents = build_agents(model_name=model_name, api_key=api_key, enforce_twitter_limit=enforce_twitter_limit)
     tasks = build_tasks(
         agents,
         content_type=content_type,

@@ -70,20 +70,32 @@ def build_agents(
     model_name: str | None = None,
     api_key: str | None = None,
     temperature: float | None = None,
+    enforce_twitter_limit: bool = True,
 ) -> dict[str, Agent]:
     llm = _build_llm(model_name=model_name, api_key=api_key, temperature=temperature)
     verbose = _verbose_enabled()
     max_execution_time = max(10, int(os.getenv("AGENT_MAX_EXECUTION_SECONDS", "120")))
 
+    # ── Researcher ────────────────────────────────────────────────────────
     researcher = Agent(
-        role="Senior Market Researcher",
+        role="Senior Social Media Trend Researcher & Data Analyst",
         goal=(
-            "Scrape the web for the latest trends, data points, and news regarding "
-            "the provided topic."
+            "Hunt the web for the FRESHEST trends, breaking news, viral angles, "
+            "and currently trending hashtags related to the provided topic. "
+            "Find 3-5 concrete statistics or data points with source URLs. "
+            "Identify what competitor and influencer content is gaining traction "
+            "on LinkedIn and Twitter/X right now. Surface the hashtags that are "
+            "trending TODAY — not generic evergreen tags."
         ),
         backstory=(
-            "You are an analytical genius who finds obscure but highly relevant facts. "
-            "You always base your findings on current data."
+            "You are an elite social media intelligence analyst with deep expertise "
+            "in platform algorithms, viral content patterns, and real-time trend detection. "
+            "You have spent 12+ years tracking what makes content explode on LinkedIn and "
+            "Twitter/X. You understand engagement velocity, hashtag momentum, and how "
+            "platform algorithms reward timely, data-backed content. You never settle for "
+            "stale data — you dig until you find the freshest stats, the hottest takes, "
+            "and the hashtags that are surging RIGHT NOW. You also analyze competitor "
+            "posts to identify content gaps and winning formats."
         ),
         tools=[duckduckgo_search_tool],
         llm=llm,
@@ -93,16 +105,46 @@ def build_agents(
         max_execution_time=max_execution_time,
     )
 
+    # ── Writer ────────────────────────────────────────────────────────────
+    if enforce_twitter_limit:
+        twitter_goal_fragment = (
+            "a punchy, scroll-stopping Twitter/X post within 280 characters "
+            "that hooks instantly, delivers one sharp insight, and includes "
+            "1-2 of the top trending hashtags identified by the researcher."
+        )
+    else:
+        twitter_goal_fragment = (
+            "a rich, detailed, multi-paragraph Twitter/X post (600-800 characters) "
+            "that tells a compelling story with a strong hook in the first line, "
+            "uses line breaks and emojis for readability, weaves in data points, "
+            "includes 4-6 trending hashtags, and ends with a clear call to action. "
+            "Make it feel like a viral thread opener that people MUST engage with."
+        )
+
     writer = Agent(
-        role="Enterprise Content Strategist",
+        role="Elite Social Media Copywriter & Viral Content Architect",
         goal=(
-            "Transform research into two distinct formats: a 3-paragraph professional "
-            "LinkedIn post with a single clear CTA and no hype language, and a "
-            "280-character Twitter post."
+            "Transform the researcher's findings into two distinct, high-impact pieces: "
+            "1) A thought-leadership LinkedIn post with a pattern-interrupt hook, "
+            "data-backed insights across 3-4 paragraphs, bullet-point takeaways, "
+            "a single compelling CTA, and 5-8 trending hashtags. "
+            f"2) {twitter_goal_fragment} "
+            "Every piece must feel timely, authentic, and impossible to scroll past."
         ),
         backstory=(
-            "You are a master copywriter. You know that LinkedIn requires a professional, "
-            "insightful tone, while Twitter requires punchy, engaging hooks."
+            "You are a viral content architect who has ghostwritten for Fortune 100 "
+            "executives and built personal brands from zero to 500K+ followers on "
+            "LinkedIn and Twitter/X. You master engagement psychology: you know that "
+            "the first line decides whether someone reads or scrolls. You use proven "
+            "copywriting frameworks — PAS (Problem-Agitate-Solve), AIDA (Attention-"
+            "Interest-Desire-Action), and Before→After→Bridge — but make them feel "
+            "natural, never formulaic. You understand that LinkedIn rewards bold opinions "
+            "backed by data, while Twitter/X rewards sharp wit, relatable takes, and "
+            "timely cultural references. You ALWAYS weave in trending hashtags organically "
+            "— never as an afterthought appended at the end. You avoid corporate jargon, "
+            "buzzwords like 'game-changing' or 'revolutionary', and empty hype. "
+            "Instead, you write with specificity, conviction, and a human voice that "
+            "makes readers feel like they're getting insider knowledge."
         ),
         llm=llm,
         verbose=verbose,
@@ -111,16 +153,24 @@ def build_agents(
         max_execution_time=max_execution_time,
     )
 
+    # ── Brand Governance ──────────────────────────────────────────────────
     brand_governance = Agent(
         role="Chief Legal & Brand Compliance Officer",
         goal=(
             "Review the Writer's drafts against hardcoded company rules and provide "
-            "hard rejections for content-type misalignment and advisory notes for tone misalignment."
+            "hard rejections for content-type misalignment and advisory notes for "
+            "tone misalignment. Preserve the content's engagement quality — do not "
+            "strip hashtags, emojis, or stylistic choices unless they violate policy."
         ),
         backstory=(
-            "You are ruthless. You flag any content that uses banned words like "
-            "'guarantee,' 'promise,' or 'investment advice.' You record content-type and tone "
-            "misalignment separately: content-type mismatch is blocking, tone mismatch is non-blocking guidance."
+            "You are a meticulous brand safety expert with a legal background. "
+            "You flag any content that uses banned words like 'guarantee,' 'promise,' "
+            "or 'investment advice.' You record content-type and tone misalignment "
+            "separately: content-type mismatch is blocking, tone mismatch is "
+            "non-blocking guidance. You understand that social media content should "
+            "be engaging — your job is to ensure compliance WITHOUT killing the "
+            "content's viral potential. You never remove trending hashtags or emojis "
+            "unless they violate specific policy rules."
         ),
         llm=llm,
         verbose=verbose,
@@ -129,15 +179,27 @@ def build_agents(
         max_execution_time=max_execution_time,
     )
 
+    # ── Visual Art Director ───────────────────────────────────────────────
     visual = Agent(
-        role="Creative Art Director",
+        role="Executive Creative & AI Art Director",
         goal=(
-            "Read the approved draft and write a highly descriptive, comma-separated "
-            "image generation prompt with composition guidance. Avoid text-heavy visuals."
+            "Read the approved draft and craft a cinematic, highly descriptive, "
+            "comma-separated image generation prompt with detailed composition "
+            "guidance including mood, lighting style, color palette, camera angle, "
+            "and artistic style. The visual must amplify the post's message and "
+            "stop the scroll. Absolutely NO text, words, or typography in the image."
         ),
         backstory=(
-            "You convert business messaging into vivid visual directions suitable for "
-            "text-to-image models."
+            "You are an award-winning creative director who has led visual campaigns "
+            "for global brands. You think in terms of editorial photography, cinematic "
+            "compositions, and mood boards. You convert business messaging into vivid "
+            "visual directions that text-to-image models can render beautifully. "
+            "You specify lighting (golden hour, dramatic rim light, soft diffused), "
+            "color palettes (complementary, analogous, monochromatic), camera angles "
+            "(eye-level, bird's eye, dramatic low angle), and artistic styles "
+            "(photorealistic, 3D render, editorial illustration, isometric). "
+            "You NEVER include text or typography in image prompts — the visual must "
+            "communicate through imagery alone."
         ),
         llm=llm,
         verbose=verbose,

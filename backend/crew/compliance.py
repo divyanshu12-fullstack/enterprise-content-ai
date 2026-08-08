@@ -5,6 +5,7 @@ from typing import Any
 
 DEFAULT_BANNED_TERMS = ["guarantee", "promise", "investment advice"]
 TWITTER_REJECTION_CHAR_LIMIT = 330
+TWITTER_EXTENDED_CHAR_LIMIT = 850
 
 
 def _normalize_terms(blocked_words: list[str] | None) -> list[str]:
@@ -71,6 +72,9 @@ def apply_deterministic_compliance(
     if enforce_twitter_limit and len(twitter_post) > TWITTER_REJECTION_CHAR_LIMIT:
         violations.append(f"twitter_post exceeds {TWITTER_REJECTION_CHAR_LIMIT} characters")
         twitter_post = twitter_post[:TWITTER_REJECTION_CHAR_LIMIT]
+    elif not enforce_twitter_limit and len(twitter_post) > TWITTER_EXTENDED_CHAR_LIMIT:
+        violations.append(f"twitter_post exceeds extended limit of {TWITTER_EXTENDED_CHAR_LIMIT} characters")
+        twitter_post = twitter_post[:TWITTER_EXTENDED_CHAR_LIMIT]
 
     status = str(payload.get("compliance_status", "")).strip().upper()
     notes = str(payload.get("compliance_notes", "") or "").strip()

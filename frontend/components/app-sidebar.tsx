@@ -13,9 +13,11 @@ import {
   Menu,
   LogOut,
   ShieldCheck,
+  Cpu,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { getSettings } from "@/lib/api";
 import {
   Sheet,
   SheetContent,
@@ -24,6 +26,26 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+
+const modelLabels: Record<string, { name: string; isFree: boolean }> = {
+  "google/gemma-4-31b-it:free": { name: "Gemma 4 31B", isFree: true },
+  "nex-agi/nex-n2-pro:free": { name: "Nex-N2-Pro", isFree: true },
+  "meta-llama/llama-3.3-70b-instruct:free": { name: "Llama 3.3 70B", isFree: true },
+  "anthropic/claude-3.5-haiku": { name: "Claude 3.5 Haiku", isFree: false },
+  "openai/chatgpt-4o-latest": { name: "ChatGPT-4o", isFree: false },
+  "deepseek/deepseek-v4-pro": { name: "DeepSeek V4 Pro", isFree: false },
+  "google/gemma-4-26b-a4b-it": { name: "Gemma 4 26B", isFree: false },
+};
+
+function formatModelName(modelId: string) {
+  if (modelLabels[modelId]) return modelLabels[modelId];
+  const parts = modelId.split("/");
+  const rawName = parts[parts.length - 1].replace(":free", "");
+  return {
+    name: rawName.length > 18 ? rawName.slice(0, 16) + "..." : rawName,
+    isFree: modelId.includes(":free"),
+  };
+}
 
 const navItems = [
   {
@@ -86,11 +108,32 @@ export function AppSidebar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [userEmail, setUserEmail] = useState("");
+  const [activeModel, setActiveModel] = useState<string>("google/gemma-4-31b-it:free");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       setUserEmail(window.localStorage.getItem("draftly_user_email") ?? "team@company.com");
     }
+
+    let mounted = true;
+    getSettings()
+      .then((res) => {
+        if (mounted && res?.selected_model) {
+          setActiveModel(res.selected_model);
+        }
+      })
+      .catch(() => {});
+
+    const handleSettingsUpdate = (e: any) => {
+      if (e?.detail?.selected_model) {
+        setActiveModel(e.detail.selected_model);
+      }
+    };
+    window.addEventListener("draftly_settings_update", handleSettingsUpdate);
+    return () => {
+      mounted = false;
+      window.removeEventListener("draftly_settings_update", handleSettingsUpdate);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -114,30 +157,55 @@ export function AppSidebar() {
     </nav>
   );
 
+  const modelInfo = formatModelName(activeModel);
+
   const statusAndActions = (
     <>
-      <div className="border-t border-sidebar-border px-4 py-4">
-        <div className="rounded-xl border border-border bg-secondary p-3">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-success" />
-            <span className="text-xs font-medium text-sidebar-foreground">System healthy</span>
+      <div className="border-t border-sidebar-border px-4 py-3.5">
+        <Link
+          href="/app/settings"
+          onClick={() => setOpen(false)}
+          className="group block rounded-xl border border-border/80 bg-card/70 p-3 shadow-xs transition-all hover:border-primary/40 hover:bg-card/90"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Cpu className="h-3.5 w-3.5 text-primary" />
+              <span className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground">Active Model</span>
+            </div>
+            <span
+              className={cn(
+                "rounded-full px-1.5 py-0.5 text-[9px] font-medium border font-mono leading-none",
+                modelInfo.isFree
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+                  : "border-amber-500/30 bg-amber-500/10 text-amber-500"
+              )}
+            >
+              {modelInfo.isFree ? "Free Tier" : "Pro Model"}
+            </span>
           </div>
-          <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-            <Circle className="h-2.5 w-2.5 fill-success text-success" />
-            All agents online
+          <div className="mt-2 flex items-center justify-between">
+            <span className="truncate text-xs font-semibold text-sidebar-foreground group-hover:text-primary transition-colors">
+              {modelInfo.name}
+            </span>
+            <span className="text-[11px] text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all">
+              →
+            </span>
           </div>
-        </div>
+        </Link>
       </div>
 
       <div className="border-t border-sidebar-border p-4">
-        <div className="mb-3 rounded-xl border border-border bg-secondary p-3">
-          <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Signed in</div>
-          <div className="mt-1 truncate text-sm text-sidebar-foreground">{userEmail}</div>
+        <div className="mb-2.5 rounded-xl border border-border/80 bg-card/60 p-3 shadow-xs">
+          <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground font-mono">
+            <span>Workspace</span>
+            <span className="text-primary font-semibold">Pro Tier</span>
+          </div>
+          <div className="mt-1 truncate text-xs font-medium text-sidebar-foreground">{userEmail}</div>
         </div>
         <Link
           href="/app/settings"
           onClick={() => setOpen(false)}
-          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
         >
           <Settings className="h-4 w-4" />
           Settings
@@ -145,7 +213,7 @@ export function AppSidebar() {
         <button
           type="button"
           onClick={handleLogout}
-          className="mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
         >
           <LogOut className="h-4 w-4" />
           Log out
@@ -158,10 +226,15 @@ export function AppSidebar() {
     <>
       <aside className="app-panel fixed left-0 top-0 z-40 hidden h-screen w-64 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar/90 md:flex">
         <div className="flex h-18 flex-col items-start justify-center border-b border-sidebar-border px-6">
-          <span className="gradient-text text-sm font-semibold tracking-wide">
-            Draftly
-          </span>
-          <span className="text-xs text-muted-foreground">Enterprise Content Workspace</span>
+          <div className="flex items-center justify-between w-full">
+            <span className="gradient-text text-base font-bold tracking-wide">
+              Draftly
+            </span>
+            <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-mono text-primary border border-primary/20">
+              v2 AI
+            </span>
+          </div>
+          <span className="text-xs text-muted-foreground">Enterprise Content Suite</span>
         </div>
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="min-h-0 flex-1 overflow-y-auto">{navLinks}</div>

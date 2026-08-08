@@ -8,57 +8,64 @@ import {
     EyeOff,
     ExternalLink,
     Key,
+    Plus,
     RefreshCw,
     Save,
     Shield,
     SlidersHorizontal,
     CircleDollarSign,
     Sparkles,
+    Trash2,
+    X,
+    Cpu,
+    Check,
+    Zap,
+    Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { clearGenerations, getSettings, setApiKey, testApiKey, updateSettings } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
 /*  Model definitions — free (no key) vs paid (user key required)     */
 /* ------------------------------------------------------------------ */
 
 const freeModels = [
-    { value: "google/gemma-4-31b-it:free", label: "Gemma 4 31B", description: "Google's lightweight efficient model" },
-    { value: "nex-agi/nex-n2-pro:free", label: "Nex-N2-Pro", description: "Nex AGI's powerful agentic MoE" },
-    { value: "meta-llama/llama-3.3-70b-instruct:free", label: "Llama 3.3 70B Instruct", description: "Meta's highly capable model" },
+    { value: "google/gemma-4-31b-it:free", label: "Gemma 4 31B", provider: "Google", tag: "Fast & Precise", description: "Google's lightweight efficient instruction model" },
+    { value: "nex-agi/nex-n2-pro:free", label: "Nex-N2-Pro", provider: "Nex AGI", tag: "Agentic MoE", description: "High-reasoning multi-agent orchestrator model" },
+    { value: "meta-llama/llama-3.3-70b-instruct:free", label: "Llama 3.3 70B Instruct", provider: "Meta", tag: "Deep Reasoning", description: "Meta's flagship open-weights reasoning model" },
 ];
 
 const paidModels = [
-    { value: "google/gemma-4-26b-a4b-it", label: "Gemma 4 26B A4B", description: "Google's cheap paid alternate model" },
-    { value: "openai/chatgpt-4o-latest", label: "GPT Chat Latest", description: "OpenAI's flagship model" },
-    { value: "anthropic/claude-3.5-haiku", label: "Claude Haiku Latest", description: "Anthropic's fastest model" },
-    { value: "deepseek/deepseek-v4-pro", label: "DeepSeek V4 Pro", description: "DeepSeek's advanced MoE reasoning" },
+    { value: "anthropic/claude-3.5-haiku", label: "Claude 3.5 Haiku", provider: "Anthropic", tag: "Creative Copy", description: "Anthropic's lightning-fast creative writing model" },
+    { value: "openai/chatgpt-4o-latest", label: "ChatGPT-4o Latest", provider: "OpenAI", tag: "Flagship", description: "OpenAI's state-of-the-art multimodal model" },
+    { value: "deepseek/deepseek-v4-pro", label: "DeepSeek V4 Pro", provider: "DeepSeek", tag: "Advanced MoE", description: "DeepSeek's advanced MoE reasoning engine" },
+    { value: "google/gemma-4-26b-a4b-it", label: "Gemma 4 26B A4B", provider: "Google", tag: "Paid Tier", description: "Google's low-latency dedicated inference model" },
 ];
 
 const allModels = [...freeModels, ...paidModels];
-
 const DEFAULT_MODEL = "google/gemma-4-31b-it:free";
 
 function isPaidModel(modelValue: string): boolean {
     return !modelValue.endsWith(":free") && modelValue !== "openrouter/auto";
 }
 
-const blockedWords = ["guarantee", "promise", "investment advice", "guaranteed returns", "risk-free", "100% safe"];
+const defaultBlockedWords = ["guarantee", "promise", "investment advice", "guaranteed returns", "risk-free", "100% safe"];
 
 export default function SettingsPage() {
     const [apiKey, setApiKeyValue] = useState("");
     const [showApiKey, setShowApiKey] = useState(false);
     const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
-    const [customBlockedWords, setCustomBlockedWords] = useState("");
+    const [customWordsList, setCustomWordsList] = useState<string[]>([]);
+    const [newWordInput, setNewWordInput] = useState("");
     const [isSaving, setIsSaving] = useState(false);
     const [isTestingApiKey, setIsTestingApiKey] = useState(false);
     const [hasStoredApiKey, setHasStoredApiKey] = useState(false);
@@ -84,8 +91,6 @@ export default function SettingsPage() {
                 const settings = await getSettings();
                 if (!active) return;
 
-                // If the saved model is not in our list (e.g. old gemini model),
-                // fall back to the default.
                 const knownModel = allModels.find((m) => m.value === settings.selected_model);
                 setSelectedModel(knownModel ? settings.selected_model : DEFAULT_MODEL);
 
@@ -96,7 +101,7 @@ export default function SettingsPage() {
                     autoGenerateImage: settings.auto_generate_image,
                     strictCompliance: settings.strict_compliance,
                 });
-                setCustomBlockedWords(settings.custom_blocked_words.join("\n"));
+                setCustomWordsList(settings.custom_blocked_words || []);
                 setHasStoredApiKey(settings.has_api_key);
             } catch {
                 toast.error("Unable to load settings");
@@ -109,8 +114,22 @@ export default function SettingsPage() {
         };
     }, []);
 
+    const handleAddWord = () => {
+        const trimmed = newWordInput.trim();
+        if (!trimmed) return;
+        if (customWordsList.some((w) => w.toLowerCase() === trimmed.toLowerCase())) {
+            toast.info("Term already in list");
+            return;
+        }
+        setCustomWordsList([...customWordsList, trimmed]);
+        setNewWordInput("");
+    };
+
+    const handleRemoveWord = (wordToRemove: string) => {
+        setCustomWordsList(customWordsList.filter((w) => w !== wordToRemove));
+    };
+
     const handleSave = async () => {
-        // Block saving a paid model without an API key
         if (selectedIsPaid && !apiKey.trim() && !hasStoredApiKey) {
             toast.error("API key required", {
                 description: "You must provide your own OpenRouter API key to use paid models.",
@@ -127,10 +146,7 @@ export default function SettingsPage() {
                 include_source_urls: generationSettings.includeSourceUrls,
                 auto_generate_image: generationSettings.autoGenerateImage,
                 strict_compliance: generationSettings.strictCompliance,
-                custom_blocked_words: customBlockedWords
-                    .split("\n")
-                    .map((word) => word.trim())
-                    .filter(Boolean),
+                custom_blocked_words: customWordsList,
             });
 
             if (apiKey.trim()) {
@@ -138,7 +154,11 @@ export default function SettingsPage() {
                 setHasStoredApiKey(true);
             }
 
-            toast.success("Settings saved");
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("draftly_settings_update", { detail: { selected_model: selectedModel } }));
+            }
+
+            toast.success("Settings saved successfully");
         } catch {
             toast.error("Save failed", { description: "Please try again." });
         } finally {
@@ -167,11 +187,11 @@ export default function SettingsPage() {
             }
             const result = await testApiKey();
             if (result.ok) {
-                setApiKeyTestResult({ status: "success", message: result.detail || "Connection successful." });
+                setApiKeyTestResult({ status: "success", message: result.detail || "OpenRouter connection verified." });
                 toast.success("Connection successful");
             }
         } catch {
-            setApiKeyTestResult({ status: "error", message: "Failed to connect. Check your API key." });
+            setApiKeyTestResult({ status: "error", message: "Failed to connect. Check your OpenRouter key." });
             toast.error("Failed to connect. Check your API key.");
         } finally {
             setIsTestingApiKey(false);
@@ -187,7 +207,7 @@ export default function SettingsPage() {
             autoGenerateImage: true,
             strictCompliance: true,
         });
-        setCustomBlockedWords(blockedWords.join("\n"));
+        setCustomWordsList([]);
         setApiKeyValue("");
         setHasStoredApiKey(false);
         setApiKeyTestResult({ status: "idle", message: "" });
@@ -196,49 +216,139 @@ export default function SettingsPage() {
         } catch (error) {
             console.error("Failed to clear API key on backend");
         }
-        toast.success("Defaults restored and API key cleared");
+        if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("draftly_settings_update", { detail: { selected_model: DEFAULT_MODEL } }));
+        }
+        toast.success("Defaults restored");
     };
 
-    // Find the currently-selected model's metadata for the description line
     const selectedModelMeta = allModels.find((m) => m.value === selectedModel);
 
     return (
         <div className="min-h-screen bg-transparent">
+            {/* Header */}
             <header className="app-header-glass sticky top-0 z-30 border-b border-border/80">
-                <div className="flex min-h-20 flex-wrap items-center justify-between gap-3 px-4 py-5 pl-14 md:min-h-24 md:flex-nowrap md:px-6 md:py-6 md:pl-6">
+                <div className="flex min-h-20 flex-wrap items-center justify-between gap-3 px-4 py-5 pl-14 sm:px-6 lg:px-8 xl:px-10 md:min-h-24 md:flex-nowrap md:pl-6">
                     <div>
-                        <h1 className="text-lg font-semibold tracking-tight md:text-xl">Settings</h1>
+                        <h1 className="text-lg font-semibold tracking-tight md:text-xl">Workspace & Model Settings</h1>
                         <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                            <span className="text-foreground">Model, governance, and workspace behavior</span>
+                            <span className="text-foreground">Configure AI engines, compliance guardrails, and pipeline behavior</span>
                         </p>
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="outline" onClick={handleResetDefaults}>
-                            <RefreshCw className="mr-2 h-4 w-4" />
-                            Reset
+                        <Button variant="outline" size="sm" onClick={handleResetDefaults} className="h-9 border-border bg-card/60">
+                            <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                            Reset Defaults
                         </Button>
-                        <Button onClick={handleSave} disabled={isSaving}>
-                            <Save className="mr-2 h-4 w-4" />
-                            {isSaving ? "Saving" : "Save"}
+                        <Button size="sm" onClick={handleSave} disabled={isSaving} className="h-9 shadow-md">
+                            <Save className="mr-1.5 h-3.5 w-3.5" />
+                            {isSaving ? "Saving..." : "Save Changes"}
                         </Button>
                     </div>
                 </div>
             </header>
 
-            <div className="px-4 py-6 md:px-6 md:py-8 lg:pb-16 max-md:pb-24">
-                <div className="mx-auto grid w-full max-w-350 gap-6 lg:grid-cols-[1fr_1fr]">
+            <div className="px-4 py-6 sm:px-6 lg:px-8 xl:px-10 md:py-8 lg:pb-16 max-md:pb-24">
+                <div className="mx-auto grid w-full max-w-[1600px] 2xl:max-w-[1720px] gap-6 xl:gap-8 lg:grid-cols-[1fr_1fr]">
+                    
+                    {/* LEFT COLUMN: Model Engine & API Key */}
                     <div className="space-y-6">
-                        <Card className="app-panel border-border/80">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-base">
-                                    <Key className="h-4 w-4" />
-                                    API access
+                        
+                        {/* AI Engine & API Access */}
+                        <Card className="app-panel border-border/80 shadow-lg">
+                            <CardHeader className="border-b border-border/60 pb-4">
+                                <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                                    <Cpu className="h-4 w-4 text-primary" />
+                                    AI Model Engine
                                 </CardTitle>
-                                <CardDescription>Set your OpenRouter API key and model choice</CardDescription>
+                                <CardDescription className="text-xs">
+                                    Select the underlying model for multi-agent brief analysis and copywriting
+                                </CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-6">
-                                <div className="space-y-2">
-                                    <Label htmlFor="apiKey">OpenRouter API key</Label>
+                            <CardContent className="space-y-6 p-6">
+                                
+                                {/* Model Selector */}
+                                <div className="space-y-2.5">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="text-sm font-medium">Selected Model</Label>
+                                        <Badge
+                                            variant="outline"
+                                            className={cn(
+                                                "text-[10px] font-mono",
+                                                selectedIsPaid
+                                                    ? "border-amber-500/40 bg-amber-500/10 text-amber-500"
+                                                    : "border-emerald-500/40 bg-emerald-500/10 text-emerald-500"
+                                            )}
+                                        >
+                                            {selectedIsPaid ? "Paid Tier" : "Free Model Available"}
+                                        </Badge>
+                                    </div>
+                                    <Select value={selectedModel} onValueChange={setSelectedModel}>
+                                        <SelectTrigger className="border-border bg-input h-11">
+                                            <SelectValue placeholder="Choose model" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectGroup>
+                                                <SelectLabel className="flex items-center gap-1.5 text-xs font-semibold text-emerald-500">
+                                                    <Sparkles className="h-3 w-3" />
+                                                    Free Models (No API Key Required)
+                                                </SelectLabel>
+                                                {freeModels.map((model) => (
+                                                    <SelectItem key={model.value} value={model.value}>
+                                                        <div className="flex items-center justify-between gap-3 w-full py-0.5">
+                                                            <span className="font-medium text-foreground">{model.label}</span>
+                                                            <div className="flex items-center gap-1.5 ml-auto">
+                                                                <span className="text-xs text-muted-foreground">({model.provider})</span>
+                                                                <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-500 text-[10px] px-1.5 py-0">
+                                                                    Free
+                                                                </Badge>
+                                                            </div>
+                                                        </div>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectGroup>
+                                            <SelectGroup>
+                                                <SelectLabel className="flex items-center gap-1.5 text-xs font-semibold text-amber-500 mt-2">
+                                                    <CircleDollarSign className="h-3 w-3" />
+                                                    Paid Flagship Models (Requires OpenRouter Key)
+                                                </SelectLabel>
+                                                {paidModels.map((model) => (
+                                                    <SelectItem key={model.value} value={model.value}>
+                                                        <div className="flex items-center justify-between gap-3 w-full py-0.5">
+                                                            <span className="font-medium text-foreground">{model.label}</span>
+                                                            <div className="flex items-center gap-1.5 ml-auto">
+                                                                <span className="text-xs text-muted-foreground">({model.provider})</span>
+                                                                <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-500 text-[10px] px-1.5 py-0">
+                                                                    Paid
+                                                                </Badge>
+                                                            </div>
+                                                        </div>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectGroup>
+                                        </SelectContent>
+                                    </Select>
+                                    <div className="rounded-lg border border-border/60 bg-secondary/30 p-2.5 text-xs text-muted-foreground">
+                                        <strong className="text-foreground">{selectedModelMeta?.label}</strong>: {selectedModelMeta?.description}
+                                    </div>
+                                </div>
+
+                                <Separator />
+
+                                {/* API Key Section */}
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="apiKey" className="text-sm font-medium flex items-center gap-1.5">
+                                            <Key className="h-3.5 w-3.5 text-primary" />
+                                            OpenRouter API Key
+                                        </Label>
+                                        {hasStoredApiKey && (
+                                            <Badge variant="outline" className="border-success/40 bg-success/10 text-success text-[10px] flex items-center gap-1">
+                                                <Check className="h-2.5 w-2.5" />
+                                                Key Active
+                                            </Badge>
+                                        )}
+                                    </div>
                                     <div className="flex flex-col gap-2 sm:flex-row">
                                         <div className="relative flex-1">
                                             <Input
@@ -251,8 +361,8 @@ export default function SettingsPage() {
                                                         setApiKeyTestResult({ status: "idle", message: "" });
                                                     }
                                                 }}
-                                                className="border-border bg-input pr-10"
-                                                placeholder="Paste API key"
+                                                className="border-border bg-input pr-10 h-10"
+                                                placeholder={hasStoredApiKey ? "••••••••••••••••••••••••" : "sk-or-v1-..."}
                                             />
                                             <button
                                                 type="button"
@@ -262,228 +372,227 @@ export default function SettingsPage() {
                                                 {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                             </button>
                                         </div>
-                                        <Button variant="outline" onClick={handleTestConnection} disabled={isTestingApiKey}>
-                                            {isTestingApiKey ? "Testing..." : "Test key"}
+                                        <Button
+                                            variant="outline"
+                                            onClick={handleTestConnection}
+                                            disabled={isTestingApiKey}
+                                            className="h-10 border-border bg-card/60"
+                                        >
+                                            {isTestingApiKey ? "Testing..." : "Test Connection"}
                                         </Button>
                                     </div>
-                                    {hasStoredApiKey && !apiKey.trim() && (
-                                        <p className="text-xs text-muted-foreground">
-                                            A key is saved in settings. Enter a new key to run a fresh test.
-                                        </p>
-                                    )}
+
                                     {apiKeyTestResult.message && (
                                         <div
-                                            className={`rounded-md border px-3 py-2 text-xs ${apiKeyTestResult.status === "success"
-                                                ? "border-success/40 bg-success/10 text-success"
-                                                : apiKeyTestResult.status === "error"
+                                            className={cn(
+                                                "rounded-lg border px-3 py-2.5 text-xs font-mono flex items-center gap-2",
+                                                apiKeyTestResult.status === "success"
+                                                    ? "border-success/40 bg-success/10 text-success"
+                                                    : apiKeyTestResult.status === "error"
                                                     ? "border-destructive/40 bg-destructive/10 text-destructive"
                                                     : "border-border bg-secondary text-muted-foreground"
-                                                }`}
+                                            )}
                                         >
+                                            {apiKeyTestResult.status === "success" ? (
+                                                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                                            ) : (
+                                                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                                            )}
                                             {apiKeyTestResult.message}
                                         </div>
                                     )}
-                                    <a
-                                        href="https://openrouter.ai/settings/keys"
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                                    >
-                                        <ExternalLink className="h-3 w-3" />
-                                        Open OpenRouter Keys
-                                    </a>
-                                </div>
 
-                                <Separator />
-
-                                {/* Model selector with free/paid groups */}
-                                <div className="space-y-2">
-                                    <Label>Model</Label>
-                                    <Select value={selectedModel} onValueChange={setSelectedModel}>
-                                        <SelectTrigger className="border-border bg-input">
-                                            <SelectValue placeholder="Choose model" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectGroup>
-                                                <SelectLabel className="flex items-center gap-1.5 text-xs font-semibold text-emerald-500">
-                                                    <Sparkles className="h-3 w-3" />
-                                                    Free Models
-                                                </SelectLabel>
-                                                {freeModels.map((model) => (
-                                                    <SelectItem key={model.value} value={model.value}>
-                                                        <span className="flex items-center gap-2">
-                                                            {model.label}
-                                                            <Badge variant="outline" className="ml-1 border-emerald-500/40 bg-emerald-500/10 text-emerald-500 text-[10px] px-1.5 py-0">
-                                                                Free
-                                                            </Badge>
-                                                        </span>
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectGroup>
-                                            <SelectGroup>
-                                                <SelectLabel className="flex items-center gap-1.5 text-xs font-semibold text-amber-500">
-                                                    <CircleDollarSign className="h-3 w-3" />
-                                                    Paid Models — Requires API Key
-                                                </SelectLabel>
-                                                {paidModels.map((model) => (
-                                                    <SelectItem key={model.value} value={model.value}>
-                                                        <span className="flex items-center gap-2">
-                                                            {model.label}
-                                                            <Badge variant="outline" className="ml-1 border-amber-500/40 bg-amber-500/10 text-amber-500 text-[10px] px-1.5 py-0">
-                                                                Paid
-                                                            </Badge>
-                                                        </span>
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectGroup>
-                                        </SelectContent>
-                                    </Select>
-                                    <p className="text-xs text-muted-foreground">
-                                        {selectedModelMeta?.description ?? selectedModel}
-                                    </p>
-                                </div>
-
-                                {/* Billing warning for paid models */}
-                                {selectedIsPaid && (
-                                    <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
-                                        <p className="flex items-start gap-2 text-sm font-medium text-amber-600 dark:text-amber-400">
-                                            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                                            <span>
-                                                This model is paid. Usage will be billed to your OpenRouter API key.
-                                                Make sure you have sufficient credits on{" "}
-                                                <a
-                                                    href="https://openrouter.ai/settings/credits"
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    className="underline underline-offset-2 hover:text-amber-700 dark:hover:text-amber-300"
-                                                >
-                                                    your OpenRouter account
-                                                </a>.
-                                            </span>
-                                        </p>
+                                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
+                                        <span>Need an API key for premium models?</span>
+                                        <a
+                                            href="https://openrouter.ai/settings/keys"
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="inline-flex items-center gap-1 text-primary hover:underline"
+                                        >
+                                            <ExternalLink className="h-3 w-3" />
+                                            Get OpenRouter Key
+                                        </a>
                                     </div>
-                                )}
-
-                                {/* Error if paid model selected but no key */}
-                                {selectedIsPaid && !hasStoredApiKey && !apiKey.trim() && (
-                                    <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3">
-                                        <p className="flex items-center gap-2 text-sm font-medium text-destructive">
-                                            <AlertTriangle className="h-4 w-4 shrink-0" />
-                                            You must provide your own OpenRouter API key to use paid models.
-                                        </p>
-                                    </div>
-                                )}
+                                </div>
                             </CardContent>
                         </Card>
 
-                        <Card className="app-panel border-border/80">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-base">
-                                    <Shield className="h-4 w-4" />
-                                    Compliance
+                        {/* Compliance & Guardrail Manager */}
+                        <Card className="app-panel border-border/80 shadow-lg">
+                            <CardHeader className="border-b border-border/60 pb-4">
+                                <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                                    <Shield className="h-4 w-4 text-primary" />
+                                    Compliance & Banned Words Guard
                                 </CardTitle>
-                                <CardDescription>Default and custom blocked language</CardDescription>
+                                <CardDescription className="text-xs">
+                                    Deterministic blocklist that automatically rejects unverified claims or regulatory violations
+                                </CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-5">
+                            <CardContent className="space-y-5 p-6">
                                 <div>
-                                    <p className="mb-2 text-sm font-medium">Default blocked words</p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {blockedWords.map((word) => (
-                                            <Badge key={word} variant="outline" className="border-destructive/40 bg-destructive/10 text-destructive">
-                                                <AlertTriangle className="mr-1 h-3 w-3" />
+                                    <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-2">
+                                        Default Regulatory Guardrails (Built-in)
+                                    </p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {defaultBlockedWords.map((word) => (
+                                            <Badge key={word} variant="outline" className="border-destructive/40 bg-destructive/10 text-destructive text-xs py-1">
+                                                <Lock className="mr-1 h-2.5 w-2.5" />
                                                 {word}
                                             </Badge>
                                         ))}
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="customBlocked">Custom blocked words</Label>
-                                    <Textarea
-                                        id="customBlocked"
-                                        value={customBlockedWords}
-                                        onChange={(e) => setCustomBlockedWords(e.target.value)}
-                                        className="min-h-28 resize-none border-border bg-input"
-                                        placeholder="One word or phrase per line"
-                                    />
-                                </div>
+                                <Separator />
 
-                                <div className="rounded-lg border border-success/30 bg-success/10 p-3">
-                                    <p className="flex items-center gap-2 text-sm font-medium text-success">
-                                        <CheckCircle2 className="h-4 w-4" />
-                                        Governance checks enabled
-                                    </p>
+                                <div className="space-y-2.5">
+                                    <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+                                        Custom Workspace Blocked Terms
+                                    </Label>
+                                    
+                                    {/* Add Term Input */}
+                                    <div className="flex gap-2">
+                                        <Input
+                                            value={newWordInput}
+                                            onChange={(e) => setNewWordInput(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter") {
+                                                    e.preventDefault();
+                                                    handleAddWord();
+                                                }
+                                            }}
+                                            placeholder="Add banned term (e.g. 10x ROI, secret formula)..."
+                                            className="border-border bg-input h-9 text-xs"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleAddWord}
+                                            className="h-9 border-border bg-card/60 text-xs px-3"
+                                        >
+                                            <Plus className="mr-1 h-3.5 w-3.5" />
+                                            Add
+                                        </Button>
+                                    </div>
+
+                                    {/* Custom Chips Display */}
+                                    {customWordsList.length > 0 ? (
+                                        <div className="flex flex-wrap gap-1.5 pt-2">
+                                            {customWordsList.map((word) => (
+                                                <Badge
+                                                    key={word}
+                                                    variant="secondary"
+                                                    className="bg-secondary border border-border/80 text-foreground text-xs py-1 pr-1 pl-2.5 flex items-center gap-1.5"
+                                                >
+                                                    <span>{word}</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveWord(word)}
+                                                        className="h-4 w-4 rounded-full flex items-center justify-center hover:bg-destructive/20 hover:text-destructive transition-colors"
+                                                    >
+                                                        <X className="h-3 w-3" />
+                                                    </button>
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-muted-foreground italic pt-1">
+                                            No custom blocked terms added yet.
+                                        </p>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
-
                     </div>
+
+                    {/* RIGHT COLUMN: Generation Behavior & Danger Zone */}
                     <div className="space-y-6">
-
-                        <Card className="app-panel border-border/80">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-base">
-                                    <SlidersHorizontal className="h-4 w-4" />
-                                    Generation behavior
+                        
+                        {/* Generation Behavior */}
+                        <Card className="app-panel border-border/80 shadow-lg">
+                            <CardHeader className="border-b border-border/60 pb-4">
+                                <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                                    <SlidersHorizontal className="h-4 w-4 text-primary" />
+                                    Pipeline Execution Behavior
                                 </CardTitle>
-                                <CardDescription>Configure retry, sources, imagery, and strictness</CardDescription>
+                                <CardDescription className="text-xs">
+                                    Fine-tune multi-agent behavior, retries, and visual generation
+                                </CardDescription>
                             </CardHeader>
-                            <CardContent className="grid gap-3 sm:grid-cols-2">
-                                <div className="rounded-lg border border-border bg-card p-3">
-                                    <div className="flex items-center justify-between">
-                                        <Label className="text-sm">Auto retry</Label>
-                                        <Switch
-                                            checked={generationSettings.autoRetry}
-                                            onCheckedChange={(checked) => setGenerationSettings({ ...generationSettings, autoRetry: checked })}
-                                        />
+                            <CardContent className="space-y-4 p-6">
+                                
+                                <div className="flex items-center justify-between rounded-xl border border-border/70 bg-card/60 p-3.5">
+                                    <div className="space-y-0.5 pr-2">
+                                        <Label className="text-sm font-medium">Automatic Retry on Flag</Label>
+                                        <p className="text-xs text-muted-foreground">
+                                            Automatically re-prompts copywriter agent if compliance detects policy issues
+                                        </p>
                                     </div>
+                                    <Switch
+                                        checked={generationSettings.autoRetry}
+                                        onCheckedChange={(checked) => setGenerationSettings({ ...generationSettings, autoRetry: checked })}
+                                    />
                                 </div>
 
-                                <div className="rounded-lg border border-border bg-card p-3">
-                                    <div className="flex items-center justify-between">
-                                        <Label className="text-sm">Include source URLs</Label>
-                                        <Switch
-                                            checked={generationSettings.includeSourceUrls}
-                                            onCheckedChange={(checked) =>
-                                                setGenerationSettings({ ...generationSettings, includeSourceUrls: checked })
-                                            }
-                                        />
+                                <div className="flex items-center justify-between rounded-xl border border-border/70 bg-card/60 p-3.5">
+                                    <div className="space-y-0.5 pr-2">
+                                        <Label className="text-sm font-medium">AI Visual Direction Studio</Label>
+                                        <p className="text-xs text-muted-foreground">
+                                            Generates cinematic 8K visual prompts for Gemini, Midjourney, and DALL-E
+                                        </p>
                                     </div>
+                                    <Switch
+                                        checked={generationSettings.autoGenerateImage}
+                                        onCheckedChange={(checked) =>
+                                            setGenerationSettings({ ...generationSettings, autoGenerateImage: checked })
+                                        }
+                                    />
                                 </div>
 
-                                <div className="rounded-lg border border-border bg-card p-3">
-                                    <div className="flex items-center justify-between">
-                                        <Label className="text-sm">Auto-generate image prompts</Label>
-                                        <Switch
-                                            checked={generationSettings.autoGenerateImage}
-                                            onCheckedChange={(checked) =>
-                                                setGenerationSettings({ ...generationSettings, autoGenerateImage: checked })
-                                            }
-                                        />
+                                <div className="flex items-center justify-between rounded-xl border border-border/70 bg-card/60 p-3.5">
+                                    <div className="space-y-0.5 pr-2">
+                                        <Label className="text-sm font-medium">Strict Compliance Guardrails</Label>
+                                        <p className="text-xs text-muted-foreground">
+                                            Enforces deterministic regulatory checks on all channels before publishing
+                                        </p>
                                     </div>
+                                    <Switch
+                                        checked={generationSettings.strictCompliance}
+                                        onCheckedChange={(checked) =>
+                                            setGenerationSettings({ ...generationSettings, strictCompliance: checked })
+                                        }
+                                    />
                                 </div>
 
-                                <div className="rounded-lg border border-border bg-card p-3">
-                                    <div className="flex items-center justify-between">
-                                        <Label className="text-sm">Strict compliance</Label>
-                                        <Switch
-                                            checked={generationSettings.strictCompliance}
-                                            onCheckedChange={(checked) =>
-                                                setGenerationSettings({ ...generationSettings, strictCompliance: checked })
-                                            }
-                                        />
+                                <div className="flex items-center justify-between rounded-xl border border-border/70 bg-card/60 p-3.5">
+                                    <div className="space-y-0.5 pr-2">
+                                        <Label className="text-sm font-medium">Include Source Attribution</Label>
+                                        <p className="text-xs text-muted-foreground">
+                                            Appends verified data references when research citations are available
+                                        </p>
                                     </div>
+                                    <Switch
+                                        checked={generationSettings.includeSourceUrls}
+                                        onCheckedChange={(checked) =>
+                                            setGenerationSettings({ ...generationSettings, includeSourceUrls: checked })
+                                        }
+                                    />
                                 </div>
 
-                                <div className="rounded-lg border border-border bg-card p-3 sm:col-span-2">
-                                    <Label className="mb-2 block text-sm">Max retry attempts</Label>
+                                <div className="rounded-xl border border-border/70 bg-card/60 p-3.5 flex items-center justify-between">
+                                    <div>
+                                        <Label className="text-sm font-medium">Max Pipeline Retries</Label>
+                                        <p className="text-xs text-muted-foreground">Limit retry loops on complex briefs</p>
+                                    </div>
                                     <Select
                                         value={generationSettings.maxRetries.toString()}
                                         onValueChange={(v) =>
                                             setGenerationSettings({ ...generationSettings, maxRetries: parseInt(v, 10) })
                                         }
                                     >
-                                        <SelectTrigger className="w-full border-border bg-input sm:w-44">
+                                        <SelectTrigger className="w-28 border-border bg-input h-9">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -496,35 +605,40 @@ export default function SettingsPage() {
                             </CardContent>
                         </Card>
 
-                        <Card className="app-panel border-destructive/40">
-                            <CardHeader>
-                                <CardTitle className="text-base text-destructive">Danger zone</CardTitle>
-                                <CardDescription>Irreversible workspace actions</CardDescription>
+                        {/* Danger Zone */}
+                        <Card className="app-panel border-destructive/40 shadow-lg">
+                            <CardHeader className="border-b border-border/60 pb-3">
+                                <CardTitle className="text-base text-destructive flex items-center gap-2">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    Danger Zone
+                                </CardTitle>
+                                <CardDescription className="text-xs">Irreversible workspace data operations</CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-3">
-                                <div className="flex flex-col gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                            <CardContent className="p-5">
+                                <div className="flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 sm:flex-row sm:items-center sm:justify-between">
                                     <div>
-                                        <p className="text-sm font-medium">Clear generation history</p>
-                                        <p className="text-xs text-muted-foreground">Delete all generated records</p>
+                                        <p className="text-sm font-medium text-foreground">Clear Generation Archives</p>
+                                        <p className="text-xs text-muted-foreground">Permanently delete all historical campaign packages</p>
                                     </div>
                                     <Button
                                         variant="destructive"
                                         size="sm"
+                                        className="h-9 shadow-xs"
                                         onClick={async () => {
                                             try {
                                                 const result = await clearGenerations();
-                                                toast.success(`Cleared ${result.deleted} generation(s)`);
+                                                toast.success(`Cleared ${result.deleted} historical generation(s)`);
                                             } catch {
                                                 toast.error("Failed to clear history");
                                             }
                                         }}
                                     >
-                                        Clear history
+                                        <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                                        Clear History
                                     </Button>
                                 </div>
                             </CardContent>
                         </Card>
-
                     </div>
                 </div>
             </div>

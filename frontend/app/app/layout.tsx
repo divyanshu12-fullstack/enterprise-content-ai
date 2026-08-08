@@ -103,7 +103,7 @@ export default function AppLayout({ children }: { children: React.ReactNode; }) 
     <SidebarProvider>
       <div className="app-shell-bg min-h-screen w-full">
         <AppSidebar />
-        <main className="min-h-screen overflow-x-hidden md:pl-72">
+        <main className="min-h-screen overflow-x-hidden md:pl-64">
           {children}
         </main>
       </div>

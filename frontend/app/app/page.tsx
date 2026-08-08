@@ -63,9 +63,7 @@ const contentTypes: Array<{ value: ContentType; label: string; }> = [
     { value: "how-to-guide", label: "How-To Guide" },
     { value: "case-study", label: "Case Study" },
     { value: "company-news", label: "Company News" },
-    { value: "personal-achievement", label: "Personal Achievement" },
-    { value: "institutional-achievement", label: "Institutional Achievement" },
-    { value: "placement-announcement", label: "Placement Announcement" },
+    { value: "achievement", label: "Achievement" },
 ];
 
 const tones = [
@@ -95,12 +93,43 @@ const stageIndexById: Record<string, number> = {
     done: 3,
 };
 
-const quickTemplates = [
-    "The evolution of Prompt Engineering into Agentic Workflows",
-    "How to maintain brand safety when scaling GenAI content",
-    "Transitioning from RAG to autonomous multi-agent pipelines",
-    "Measuring ROI on enterprise LLM deployments in 2026",
-    "Top 5 cybersecurity pitfalls when adopting AI tooling"
+const quickPresets = [
+    {
+        title: "Autonomous Multi-Agent AI Workflows",
+        description: "Architecture, orchestration & latency when scaling agentic LLM pipelines",
+        topic: "The transition from simple prompt engineering to production-grade autonomous multi-agent pipelines: architecture, state management, and latency optimization.",
+        audience: "developers",
+        contentType: "thought-leadership" as ContentType,
+        tone: "educational",
+        tag: "AI & Tech",
+    },
+    {
+        title: "Enterprise AI Safety & Governance",
+        description: "Deterministic guardrails to prevent hallucinations and compliance breaches",
+        topic: "How enterprise leaders maintain brand safety and strict regulatory compliance when scaling generative AI content across multi-channel distribution.",
+        audience: "executives",
+        contentType: "industry-insights" as ContentType,
+        tone: "persuasive",
+        tag: "Governance",
+    },
+    {
+        title: "High-Assurance FinTech Systems",
+        description: "Mitigating tail-risk with deterministic verification layers",
+        topic: "Building high-assurance FinTech workflows: mitigating tail-risk with deterministic rule engines and autonomous verification layers.",
+        audience: "professionals",
+        contentType: "case-study" as ContentType,
+        tone: "professional",
+        tag: "FinTech",
+    },
+    {
+        title: "Next-Gen Product Launch",
+        description: "Announcing an AI-powered content orchestration platform",
+        topic: "Announcing the official release of our Next-Gen AI Content & Governance Suite: automating multi-channel campaigns with built-in regulatory guardrails.",
+        audience: "marketers",
+        contentType: "product-announcement" as ContentType,
+        tone: "inspirational",
+        tag: "Launch",
+    },
 ];
 
 export default function GeneratePage() {
@@ -517,29 +546,46 @@ export default function GeneratePage() {
 
                         <div className="flex items-center gap-3 px-1 py-1 overflow-hidden">
                             <div className="h-px flex-1 bg-border/60" />
-                            <span className="shrink-0 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Or start from scratch</span>
+                            <span className="shrink-0 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Try some Examples</span>
                             <div className="h-px flex-1 bg-border/60" />
                         </div>
 
-                        <Card className="app-panel border-border/80">
-                            <CardHeader>
-                                <CardTitle className="text-base">Quick starts</CardTitle>
-                                <CardDescription>Use one of these briefs and edit as needed.</CardDescription>
+                        <Card className="app-panel border-border/80 shadow-md">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-base flex items-center gap-2">
+                                    <Sparkles className="h-4 w-4 text-primary" />
+                                    Enterprise Campaign Starter Kits
+                                </CardTitle>
+                                <CardDescription className="text-xs">
+                                    1-Click load curated topics with pre-configured audience, format, and tone
+                                </CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-2">
-                                {quickTemplates.map((template) => (
+                            <CardContent className="space-y-2.5">
+                                {quickPresets.map((preset) => (
                                     <button
-                                        key={template}
+                                        key={preset.title}
                                         type="button"
                                         onClick={() => {
-
-                                            setTopic(template);
+                                            setTopic(preset.topic);
+                                            setAudience(preset.audience);
+                                            setContentType(preset.contentType);
+                                            setTone(preset.tone);
                                             dispatchTopicChange(true, true);
+                                            toast.success(`Applied preset: ${preset.title}`);
                                         }}
-                                        className="group flex w-full items-start gap-3 rounded-lg border border-border bg-card px-3 py-2.5 text-left text-sm text-muted-foreground transition-all duration-200 hover:border-foreground/30 hover:text-foreground active:scale-[0.98] active:bg-primary/10 active:border-primary/30"
+                                        className="group flex w-full flex-col gap-1 rounded-xl border border-border/70 bg-card/80 p-3 text-left transition-all duration-200 hover:border-primary/50 hover:bg-secondary/40 active:scale-[0.99]"
                                     >
-                                        <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary/70 transition-colors group-hover:text-primary" />
-                                        <span>{template}</span>
+                                        <div className="flex items-center justify-between w-full">
+                                            <span className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
+                                                {preset.title}
+                                            </span>
+                                            <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 border-border text-muted-foreground">
+                                                {preset.tag}
+                                            </Badge>
+                                        </div>
+                                        <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
+                                            {preset.description}
+                                        </p>
                                     </button>
                                 ))}
                             </CardContent>
@@ -652,7 +698,12 @@ export default function GeneratePage() {
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <div className="space-y-2">
-                                    <Label htmlFor="topic">Topic or narrative</Label>
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="topic">Topic or narrative</Label>
+                                        <span className="text-[11px] font-mono text-muted-foreground hidden sm:inline-block">
+                                            Press <kbd className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-foreground border border-border">Ctrl</kbd> + <kbd className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-foreground border border-border">Enter</kbd> to launch
+                                        </span>
+                                    </div>
                                     <div className="relative">
                                         <Textarea
                                             id="topic"
@@ -662,6 +713,12 @@ export default function GeneratePage() {
                                                 setTopic(newTopic);
                                                 dispatchTopicChange(newTopic.trim().length > 0);
                                                 if (errors.topic) setErrors({ ...errors, topic: undefined });
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if ((e.ctrlKey || e.metaKey) && e.key === "Enter" && !isGenerating) {
+                                                    e.preventDefault();
+                                                    handleGenerate();
+                                                }
                                             }}
                                             placeholder="Example: Practical lessons from deploying AI copilots in enterprise support teams"
                                             className={cn("min-h-28 resize-none border-border bg-input pb-8 transition-colors", errors.topic && "border-destructive")}
@@ -708,7 +765,7 @@ export default function GeneratePage() {
                                         <Label>Content type</Label>
                                         <Select value={contentType} onValueChange={(val) => { setContentType(val as ContentType); if (errors.contentType) setErrors({ ...errors, contentType: undefined }); }}>
                                             <SelectTrigger className={cn("border-border bg-input transition-colors", contentType && "border-l-2 border-l-primary", errors.contentType && "border-destructive")}>
-                                                <SelectValue placeholder="Choose a format" />
+                                                <SelectValue placeholder="Content type" />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 {contentTypes.map((type) => (

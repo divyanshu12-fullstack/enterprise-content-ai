@@ -7,6 +7,7 @@ export const ContentTypeSchema = z.enum([
 	"how-to-guide",
 	"case-study",
 	"company-news",
+	"achievement",
 	"personal-achievement",
 	"institutional-achievement",
 	"placement-announcement",

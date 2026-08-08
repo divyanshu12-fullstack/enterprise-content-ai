@@ -271,7 +271,7 @@ export default function ApprovalPage() {
         <div className="min-h-screen bg-transparent">
             {/* Top Navigation Header */}
             <header className="app-header-glass sticky top-0 z-30 border-b border-border/80">
-                <div className="flex min-h-20 flex-wrap items-center justify-between gap-3 px-4 py-5 pl-14 md:min-h-24 md:flex-nowrap md:px-6 md:py-6 md:pl-6">
+                <div className="flex min-h-20 flex-wrap items-center justify-between gap-3 px-4 py-5 pl-14 sm:px-6 lg:px-8 xl:px-10 md:min-h-24 md:flex-nowrap md:pl-6">
                     <div className="flex items-center gap-3">
                         <div>
                             <h1 className="text-lg font-semibold tracking-tight md:text-xl">Content Package Approval</h1>
@@ -289,8 +289,8 @@ export default function ApprovalPage() {
             </header>
 
             {/* Main Content Layout */}
-            <div className="px-4 py-6 md:px-8 md:py-8">
-                <div className="mx-auto grid w-full max-w-7xl gap-6 xl:grid-cols-[1.35fr_1fr]">
+            <div className="px-4 py-6 sm:px-6 lg:px-8 xl:px-10 md:py-8">
+                <div className="mx-auto grid w-full max-w-[1600px] 2xl:max-w-[1720px] gap-6 xl:gap-8 xl:grid-cols-[1.6fr_1fr] 2xl:grid-cols-[1.75fr_1fr]">
                     
                     {/* LEFT COLUMN: Compliance Status & Main Multichannel Copy */}
                     <div className="space-y-6">

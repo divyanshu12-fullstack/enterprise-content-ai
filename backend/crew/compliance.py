@@ -5,7 +5,7 @@ from typing import Any
 
 DEFAULT_BANNED_TERMS = ["guarantee", "promise", "investment advice"]
 TWITTER_REJECTION_CHAR_LIMIT = 330
-TWITTER_EXTENDED_CHAR_LIMIT = 850
+TWITTER_EXTENDED_CHAR_LIMIT = 2800
 
 
 def _normalize_terms(blocked_words: list[str] | None) -> list[str]:

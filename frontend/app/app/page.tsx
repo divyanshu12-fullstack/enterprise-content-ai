@@ -740,10 +740,29 @@ export default function GeneratePage() {
                                 </div>
 
                                 <div className="space-y-4">
-                                    <div className="flex items-center justify-between rounded-lg border border-border bg-input p-3">
-                                        <div className="space-y-0.5">
-                                            <Label htmlFor="enforce-twitter-limit" className="text-sm font-medium">Enforce Twitter/X Character Limit</Label>
-                                            <p className="text-xs text-muted-foreground">Keep Twitter posts strictly under 280 characters</p>
+                                    <div className="flex items-center justify-between rounded-xl border border-border/80 bg-input/70 p-3.5 transition-colors">
+                                        <div className="space-y-1 pr-3">
+                                            <div className="flex items-center gap-2">
+                                                <Label htmlFor="enforce-twitter-limit" className="text-sm font-medium cursor-pointer">
+                                                    {enforceTwitterLimit ? "Twitter / X: Standard Tweet" : "Twitter / X: Long-Form Post"}
+                                                </Label>
+                                                <Badge
+                                                    variant="outline"
+                                                    className={cn(
+                                                        "text-[10px] font-mono px-1.5 py-0",
+                                                        enforceTwitterLimit
+                                                            ? "bg-secondary text-muted-foreground border-border"
+                                                            : "bg-primary/10 text-primary border-primary/30"
+                                                    )}
+                                                >
+                                                    {enforceTwitterLimit ? "280 chars limit" : "Extended Mode"}
+                                                </Badge>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">
+                                                {enforceTwitterLimit
+                                                    ? "Strictly capped under 280 characters for classic tweet feeds"
+                                                    : "Generates rich long-form breakdowns, thread frameworks, and trending hashtags"}
+                                            </p>
                                         </div>
                                         <Switch
                                             id="enforce-twitter-limit"

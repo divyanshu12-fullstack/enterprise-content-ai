@@ -1,7 +1,5 @@
-import asyncio
 import logging
 from os import getenv
-import httpx
 
 from dotenv import load_dotenv
 
@@ -43,27 +41,7 @@ app.include_router(generations_router)
 app.include_router(policies_router)
 
 
-async def keep_alive_cron():
-    """
-    A simple cron job task to keep the backend alive on free tiers like Render.
-    It hits the /health endpoint every 10 minutes.
-    """
-    url = getenv("RENDER_EXTERNAL_URL")
-    if not url:
-        logger.info("RENDER_EXTERNAL_URL is not set. Keep-alive cron disabled.")
-        return
 
-    health_url = f"{url}/health"
-    logger.info(f"Keep-alive cron started. Will ping {health_url} every 10 minutes.")
-
-    while True:
-        await asyncio.sleep(10 * 60)  # Wait 10 mins
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(health_url)
-                logger.info(f"Keep-alive ping successful: {response.status_code}")
-        except Exception as e:
-            logger.error(f"Keep-alive ping failed: {e}")
 
 @app.on_event("startup")
 async def startup() -> None:
@@ -72,9 +50,6 @@ async def startup() -> None:
     jwt_secret()
     encryption_key()
     init_db()
-    
-    # Start the keep-alive task in the background
-    asyncio.create_task(keep_alive_cron())
 
 
 @app.get("/")

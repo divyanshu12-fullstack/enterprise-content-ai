@@ -1,0 +1,33 @@
+# Python virtual environments
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment files — secrets go into Azure env vars, NOT the image
+.env
+.env.*
+
+# SQLite databases from local development
+*.db
+*.sqlite3
+
+# Test artifacts
+.pytest_cache/
+tests/
+test_integration.db
+htmlcov/
+.coverage
+
+# Git data
+.git/
+.gitignore
+
+# IDE configs
+.vscode/
+.idea/
+
+# Docker files (no need to copy themselves into the image)
+Dockerfile
+.dockerignore

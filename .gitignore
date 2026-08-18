@@ -114,3 +114,4 @@ target/
 *.db-journal
 backend/test_integration.db
 DOCUMENTATION.md
+migration_plan.md

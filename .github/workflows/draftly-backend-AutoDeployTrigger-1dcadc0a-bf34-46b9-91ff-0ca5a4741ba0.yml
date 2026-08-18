@@ -1,0 +1,49 @@
+name: Trigger auto deployment for draftly-backend
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ main ]
+    paths:
+    - '**'
+    - '.github/workflows/draftly-backend-AutoDeployTrigger-1dcadc0a-bf34-46b9-91ff-0ca5a4741ba0.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:      
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions: 
+      id-token: write #This is required for requesting the OIDC JWT Token
+      contents: read #Required when GH token is used to authenticate with private repo
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.DRAFTLYBACKEND_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.DRAFTLYBACKEND_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.DRAFTLYBACKEND_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}/backend
+          _dockerfilePathKey_: _dockerfilePath_
+          _targetLabelKey_: _targetLabel_
+          registryUrl: draftlycr2026.azurecr.io
+          registryUsername: ${{ secrets.DRAFTLYBACKEND_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.DRAFTLYBACKEND_REGISTRY_PASSWORD }}
+          containerAppName: draftly-backend
+          resourceGroup: draftly-rg
+          imageToBuild: draftlycr2026.azurecr.io/draftly-backend:${{ github.sha }}
+          _buildArgumentsKey_: |
+            _buildArgumentsValues_
+
+

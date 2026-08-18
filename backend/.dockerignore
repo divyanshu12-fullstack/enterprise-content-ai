@@ -1,7 +1,10 @@
 # Python virtual environments
-venv/
-.venv/
-__pycache__/
+venv
+.venv
+**/venv
+**/.venv
+__pycache__
+**/__pycache__
 *.pyc
 *.pyo
 
@@ -21,13 +24,13 @@ htmlcov/
 .coverage
 
 # Git data
-.git/
+.git
 .gitignore
 
 # IDE configs
-.vscode/
-.idea/
+.vscode
+.idea
 
-# Docker files (no need to copy themselves into the image)
+# Docker files
 Dockerfile
 .dockerignore

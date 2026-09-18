@@ -39,23 +39,24 @@ import { cn } from "@/lib/utils";
 /* ------------------------------------------------------------------ */
 
 const freeModels = [
-    { value: "google/gemma-4-31b-it:free", label: "Gemma 4 31B", provider: "Google", tag: "Fast & Precise", description: "Google's lightweight efficient instruction model" },
-    { value: "nex-agi/nex-n2-pro:free", label: "Nex-N2-Pro", provider: "Nex AGI", tag: "Agentic MoE", description: "High-reasoning multi-agent orchestrator model" },
-    { value: "meta-llama/llama-3.3-70b-instruct:free", label: "Llama 3.3 70B Instruct", provider: "Meta", tag: "Deep Reasoning", description: "Meta's flagship open-weights reasoning model" },
+    { value: "deepseek/deepseek-v4-flash-0731:free", label: "DeepSeek V4 Flash", provider: "DeepSeek", tag: "Fast & Efficient", description: "DeepSeek's fast cost-efficient flash model (free tier)" },
+    { value: "z-ai/glm-5.2:free", label: "GLM 5.2", provider: "Z-AI", tag: "Reasoning", description: "Z-AI's GLM reasoning model (free tier)" },
+    { value: "nvidia/nemotron-3.5-lightning:free", label: "Nemotron 3.5 Lightning", provider: "Nvidia", tag: "Low Latency", description: "Nvidia's low-latency Nemotron model (free tier)" },
+    { value: "openrouter/free", label: "Any Free", provider: "OpenRouter", tag: "Auto Fallback", description: "OpenRouter free-model fallback router" },
 ];
 
 const paidModels = [
-    { value: "anthropic/claude-3.5-haiku", label: "Claude 3.5 Haiku", provider: "Anthropic", tag: "Creative Copy", description: "Anthropic's lightning-fast creative writing model" },
-    { value: "openai/chatgpt-4o-latest", label: "ChatGPT-4o Latest", provider: "OpenAI", tag: "Flagship", description: "OpenAI's state-of-the-art multimodal model" },
-    { value: "deepseek/deepseek-v4-pro", label: "DeepSeek V4 Pro", provider: "DeepSeek", tag: "Advanced MoE", description: "DeepSeek's advanced MoE reasoning engine" },
-    { value: "google/gemma-4-26b-a4b-it", label: "Gemma 4 26B A4B", provider: "Google", tag: "Paid Tier", description: "Google's low-latency dedicated inference model" },
+    { value: "deepseek/deepseek-flash-latest", label: "DeepSeek Flash Latest", provider: "DeepSeek", tag: "Latest Flash", description: "DeepSeek's latest flash model" },
+    { value: "minimax/minimax-m3", label: "MiniMax M3", provider: "MiniMax", tag: "Flagship", description: "MiniMax's M3 flagship model" },
+    { value: "meta/muse-spark-1.3-contributor", label: "Muse Spark 1.3", provider: "Meta", tag: "Contributor", description: "Meta's Muse Spark contributor model" },
+    { value: "qwen/qwen3.8-flash", label: "Qwen 3.8 Flash", provider: "Qwen", tag: "Fast", description: "Qwen's fast flash model" },
 ];
 
 const allModels = [...freeModels, ...paidModels];
-const DEFAULT_MODEL = "google/gemma-4-31b-it:free";
+const DEFAULT_MODEL = "deepseek/deepseek-v4-flash-0731:free";
 
 function isPaidModel(modelValue: string): boolean {
-    return !modelValue.endsWith(":free") && modelValue !== "openrouter/auto";
+    return !modelValue.endsWith(":free") && modelValue !== "openrouter/auto" && modelValue !== "openrouter/free";
 }
 
 const defaultBlockedWords = ["guarantee", "promise", "investment advice", "guaranteed returns", "risk-free", "100% safe"];

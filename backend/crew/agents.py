@@ -11,13 +11,13 @@ from config import DEFAULT_MODEL
 # Free models available on OpenRouter (no user API key required)
 # "openrouter/auto" is a special router that auto-selects the best
 # available free model — it never goes stale.
+# "openrouter/free" is the free-model fallback router shown as "Any Free".
 # ---------------------------------------------------------------------------
 FREE_MODELS = [
-    "openrouter/auto",
-    "google/gemini-2.5-flash:free",
-    "deepseek/deepseek-chat-v3:free",
-    "qwen/qwen3-235b-a22b:free",
-    "microsoft/mai-ds-r1:free",
+    "deepseek/deepseek-v4-flash-0731:free",
+    "z-ai/glm-5.2:free",
+    "nvidia/nemotron-3.5-lightning:free",
+    "openrouter/free",
 ]
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
@@ -30,7 +30,7 @@ def _verbose_enabled() -> bool:
 def is_free_model(model_name: str) -> bool:
     """Check whether a model ID is a free OpenRouter model."""
     name = model_name.strip()
-    return name.endswith(":free") or name == "openrouter/auto"
+    return name.endswith(":free") or name in {"openrouter/auto", "openrouter/free"}
 
 
 def _build_llm(
